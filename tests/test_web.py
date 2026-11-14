@@ -76,6 +76,10 @@ def test_job_done_and_audio_ranges(server):
     assert status == 206 and len(body) == 4
     assert call(base, f"/api/jobs/{job['id']}/audio", headers={"Range": f"bytes={size}-"})[0] == 416
 
+    assert headers["Content-Disposition"].startswith("inline")
+    status, headers, _ = call(base, f"/api/jobs/{job['id']}/audio?download=1")
+    assert status == 200 and headers["Content-Disposition"].startswith("attachment")
+
     listed = json.loads(call(base, "/api/jobs")[2])
     assert [j["id"] for j in listed] == [job["id"]]
 
@@ -109,3 +113,9 @@ def test_static_path_traversal_blocked(server):
     assert call(base, "/static/..%2Fweb.py")[0] == 404
     assert call(base, "/nope")[0] == 404
     assert call(base, "/api/jobs/nope")[0] == 404
+
+
+def test_page_uses_only_relative_paths():
+    """홈 서버 /apps/<id>/ 아래에서도 열리려면 화면이 / 로 시작하는 경로를 쓰면 안 된다."""
+    html = (web.STATIC / "index.html").read_text()
+    assert '"/api' not in html and "`/api" not in html and "'/api" not in html

@@ -4,7 +4,9 @@ API
   POST /api/jobs            {"url": ..., "out_dir": ...?}  → 작업 하나 (대기열에 넣음)
   GET  /api/jobs            → 이번 실행에서 만든 작업 목록 (최신 먼저)
   GET  /api/jobs/<id>       → 작업 상태
-  GET  /api/jobs/<id>/audio → 결과 mp3 (Range 지원 — 재생 위치 이동용)
+  GET  /api/jobs/<id>/audio → 결과 mp3 (Range 지원 — 재생 위치 이동용, ?download=1 이면 내려받기)
+
+화면은 상대 경로(api/...)만 쓴다 — 홈 서버의 /apps/<id>/ 같은 하위 경로 뒤에서도 열리게.
   POST /api/jobs/<id>/reveal→ Finder 에서 보기
   GET  /api/config          → {"out_dir": 기본 저장 폴더}
 """
@@ -206,7 +208,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "audio/mpeg")
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(length))
-        self.send_header("Content-Disposition", f"inline; filename*=UTF-8''{quote(job.path.name)}")
+        disposition = "attachment" if "download=1" in self.path.split("?", 1)[-1] else "inline"
+        self.send_header("Content-Disposition", f"{disposition}; filename*=UTF-8''{quote(job.path.name)}")
         self.end_headers()
         with job.path.open("rb") as f:
             f.seek(start)

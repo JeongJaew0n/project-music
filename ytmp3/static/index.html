@@ -65,7 +65,11 @@
   .status.err { color: var(--err); }
   audio { width: 100%; margin-top: 12px; }
   .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .actions button { font-size: 13px; padding: 6px 12px; }
+  .actions button, .actions .btn { font-size: 13px; padding: 6px 12px; }
+  .btn {
+    display: inline-block; text-decoration: none; border-radius: var(--radius); border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -134,7 +138,7 @@ $("#form").addEventListener("submit", async (e) => {
   if (!url) { $("#formerr").textContent = "유튜브 링크를 넣어 주세요."; return; }
   $("#go").disabled = true;
   try {
-    const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ url, out_dir: outDir }) });
+    const job = await api("api/jobs", { method: "POST", body: JSON.stringify({ url, out_dir: outDir }) });
     jobs.unshift(job);
     $("#url").value = "";
     render();
@@ -195,18 +199,22 @@ function card(job) {
     const audio = document.createElement("audio");
     audio.controls = true;
     audio.preload = "metadata";
-    audio.src = `/api/jobs/${job.id}/audio`;
+    audio.src = `api/jobs/${job.id}/audio`;
     const actions = document.createElement("div");
     actions.className = "actions";
     const reveal = Object.assign(document.createElement("button"), { type: "button", textContent: "Finder 에서 보기" });
-    reveal.onclick = () => api(`/api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => alertInline(fresh, e.message));
+    reveal.onclick = () => api(`api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => alertInline(fresh, e.message));
     const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "경로 복사" });
     copy.onclick = async () => {
       try { await navigator.clipboard.writeText(job.path); copy.textContent = "복사됨"; }
       catch { copy.textContent = "복사 실패"; }
       setTimeout(() => (copy.textContent = "경로 복사"), 1500);
     };
-    actions.append(reveal, copy);
+    const save = Object.assign(document.createElement("a"), {
+      href: `api/jobs/${job.id}/audio?download=1`, textContent: "다운로드", className: "btn",
+    });
+    save.setAttribute("download", job.file);
+    actions.append(save, reveal, copy);
     fresh.append(st, audio, actions);
   }
   if (el) el.replaceWith(fresh);
@@ -233,7 +241,7 @@ function render() {
 }
 
 async function refresh() {
-  jobs = await api("/api/jobs");
+  jobs = await api("api/jobs");
   render();
   return jobs.some((j) => j.status === "queued" || j.status === "running");
 }
@@ -250,7 +258,7 @@ function poll() {
 
 (async () => {
   outDir = load("ytmp3.outDir");
-  try { defaultOut = (await api("/api/config")).out_dir; } catch {}
+  try { defaultOut = (await api("api/config")).out_dir; } catch {}
   showFolder();
   try { if (await refresh()) poll(); } catch { render(); }
 })();
