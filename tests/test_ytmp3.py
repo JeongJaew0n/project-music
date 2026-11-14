@@ -72,3 +72,53 @@ def test_unavailable_video_gives_clear_error(tmp_path):
     with pytest.raises(ExtractError, match="볼 수 없는 영상"):
         extract_mp3("https://www.youtube.com/watch?v=xxxxxxxxxxx", tmp_path)
     assert list(tmp_path.iterdir()) == []
+
+
+def _fake_once(tmp_path, failures):
+    """앞의 failures 번은 403 으로 실패하며 찌꺼기를 남기고, 그다음엔 mp3 를 만든다."""
+    from yt_dlp.utils import DownloadError
+
+    from ytmp3 import Extracted
+    calls = []
+
+    def once(url, out_dir, say, stem):
+        calls.append(url)
+        stem["name"] = "곡"
+        if len(calls) <= len(failures):
+            (out_dir / "곡.webp").write_bytes(b"thumb")
+            (out_dir / "곡.webm.part").write_bytes(b"part")
+            raise DownloadError(failures[len(calls) - 1])
+        (out_dir / "곡.mp3").write_bytes(b"mp3")
+        return Extracted(url, "곡", out_dir / "곡.mp3", 1.0, already_existed=False)
+
+    return once, calls
+
+
+def test_retries_transient_403(tmp_path, monkeypatch):
+    from ytmp3 import extract as ex
+    once, calls = _fake_once(tmp_path, ["ERROR: unable to download video data: HTTP Error 403: Forbidden"] * 2)
+    monkeypatch.setattr(ex, "_extract_once", once)
+    msgs = []
+    r = ex.extract_mp3(SHORT_VIDEO, tmp_path, progress=msgs.append)
+    assert r.path.name == "곡.mp3" and len(calls) == 3
+    assert any("다시 시도합니다 (3/3)" in m for m in msgs)
+
+
+def test_gives_up_and_cleans_only_own_leftovers(tmp_path, monkeypatch):
+    from ytmp3 import extract as ex
+    once, calls = _fake_once(tmp_path, ["ERROR: unable to download video data: HTTP Error 403: Forbidden"] * 3)
+    monkeypatch.setattr(ex, "_extract_once", once)
+    (tmp_path / "곡.webp.keep").write_bytes(b"x")  # 원래 있던 파일
+    with pytest.raises(ExtractError, match="403"):
+        ex.extract_mp3(SHORT_VIDEO, tmp_path)
+    assert len(calls) == 3
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["곡.webp.keep"]
+
+
+def test_permanent_error_not_retried(tmp_path, monkeypatch):
+    from ytmp3 import extract as ex
+    once, calls = _fake_once(tmp_path, ["ERROR: [youtube] x: Video unavailable"])
+    monkeypatch.setattr(ex, "_extract_once", once)
+    with pytest.raises(ExtractError, match="볼 수 없는 영상"):
+        ex.extract_mp3(SHORT_VIDEO, tmp_path)
+    assert len(calls) == 1 and list(tmp_path.iterdir()) == []

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ytmp3</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1c1b19; --muted: #6b6862; --line: #e3e0da;
+    --accent: #d2381f; --accent-ink: #ffffff; --ok: #2f7d4f; --err: #b3261e; --track: #ece9e3;
+    --radius: 12px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151413; --panel: #1f1e1c; --ink: #f1efea; --muted: #a29e96; --line: #33312d;
+      --accent: #ff5a3c; --accent-ink: #1a0f0c; --ok: #6cc28f; --err: #ff8a80; --track: #2c2a27;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 48px 16px 80px; }
+  h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 4px 0 28px; }
+
+  form { display: flex; gap: 8px; }
+  #url {
+    flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 14px 16px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink);
+  }
+  #url:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  button {
+    font: inherit; cursor: pointer; border-radius: var(--radius); border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); padding: 8px 14px;
+  }
+  button:hover { border-color: var(--muted); }
+  button.primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    font-weight: 600; padding: 14px 20px; white-space: nowrap;
+  }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  .formerr { color: var(--err); min-height: 1.5em; margin: 6px 2px 0; font-size: 14px; }
+
+  .folder { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; margin: 4px 2px 32px; flex-wrap: wrap; }
+  .folder code { color: var(--ink); background: var(--track); padding: 2px 8px; border-radius: 6px; word-break: break-all; }
+  .folder input { font: inherit; flex: 1; min-width: 200px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .linkbtn { border: 0; background: none; color: var(--accent); padding: 2px 4px; }
+
+  #jobs { display: grid; gap: 12px; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; border: 1px dashed var(--line); border-radius: var(--radius); }
+  .job { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .job .title { font-weight: 600; overflow-wrap: anywhere; }
+  .job .meta { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
+  .bar { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; margin: 12px 0 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .bar.indeterminate i { width: 30%; animation: slide 1.1s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .status { font-size: 13px; color: var(--muted); }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  audio { width: 100%; margin-top: 12px; }
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .actions button { font-size: 13px; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>yt<span>mp3</span></h1>
+  <p class="sub">유튜브 링크를 넣으면 mp3 로 뽑아 저장 폴더에 넣습니다.</p>
+
+  <form id="form" autocomplete="off" novalidate>
+    <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=…" aria-label="유튜브 링크" autofocus>
+    <button class="primary" id="go" type="submit">mp3 뽑기</button>
+  </form>
+  <div class="formerr" id="formerr" role="alert"></div>
+
+  <div class="folder" id="folder">
+    저장 폴더 <code id="outText">…</code>
+    <button class="linkbtn" type="button" id="outEdit">바꾸기</button>
+  </div>
+
+  <section id="jobs" aria-live="polite"></section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let outDir = null;           // 화면에서 고른 저장 폴더 (없으면 서버 기본값)
+let defaultOut = "";
+let jobs = [];
+let timer = null;
+const rendered = new Map(); // id → 카드 요소 (재생 중인 audio 를 다시 그리지 않으려고)
+
+function store(key, value) { try { value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch {} }
+function load(key) { try { return localStorage.getItem(key); } catch { return null; } }
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `요청 실패 (${res.status})`);
+  return body;
+}
+
+function showFolder() {
+  $("#outText").textContent = outDir || defaultOut;
+}
+
+$("#outEdit").addEventListener("click", () => {
+  const box = $("#folder");
+  box.innerHTML = "";
+  const input = Object.assign(document.createElement("input"), { value: outDir || defaultOut, ariaLabel: "저장 폴더" });
+  const save = Object.assign(document.createElement("button"), { type: "button", textContent: "저장" });
+  const reset = Object.assign(document.createElement("button"), { type: "button", className: "linkbtn", textContent: "기본값" });
+  const done = (value) => {
+    outDir = value && value !== defaultOut ? value : null;
+    store("ytmp3.outDir", outDir);
+    location.reload();
+  };
+  save.onclick = () => done(input.value.trim());
+  reset.onclick = () => done(null);
+  input.onkeydown = (e) => { if (e.key === "Enter") save.click(); if (e.key === "Escape") location.reload(); };
+  box.append("저장 폴더 ", input, save, reset);
+  input.focus(); input.select();
+});
+
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const url = $("#url").value.trim();
+  $("#formerr").textContent = "";
+  if (!url) { $("#formerr").textContent = "유튜브 링크를 넣어 주세요."; return; }
+  $("#go").disabled = true;
+  try {
+    const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ url, out_dir: outDir }) });
+    jobs.unshift(job);
+    $("#url").value = "";
+    render();
+    poll();
+  } catch (err) {
+    $("#formerr").textContent = err.message;
+  } finally {
+    $("#go").disabled = false;
+    $("#url").focus();
+  }
+});
+
+function fmtDuration(sec) {
+  if (sec == null) return "";
+  sec = Math.round(sec);
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+function card(job) {
+  let el = rendered.get(job.id);
+  const key = `${job.status}|${job.message}|${job.percent}|${job.title}`;
+  if (el && el.dataset.key === key) return el;
+  // 끝난 카드는 다시 그리지 않는다 — 재생 중인 소리가 끊긴다.
+  if (el && el.dataset.status === "done" && job.status === "done") return el;
+  const fresh = document.createElement("article");
+  fresh.className = "job";
+  fresh.dataset.key = key;
+  fresh.dataset.status = job.status;
+  fresh.dataset.id = job.id;
+
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = job.title || job.url;
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = job.status === "done" ? job.path : job.url;
+  fresh.append(title, meta);
+
+  if (job.status === "queued" || job.status === "running") {
+    const bar = document.createElement("div");
+    bar.className = "bar" + (job.percent == null || job.message !== "받는 중" ? " indeterminate" : "");
+    const fill = document.createElement("i");
+    if (!bar.classList.contains("indeterminate")) fill.style.width = `${job.percent}%`;
+    bar.append(fill);
+    const st = document.createElement("div");
+    st.className = "status";
+    st.textContent = job.message === "받는 중" && job.percent != null ? `받는 중 ${job.percent}%` : job.message;
+    fresh.append(bar, st);
+  } else if (job.status === "error") {
+    const st = document.createElement("div");
+    st.className = "status err";
+    st.textContent = job.error;
+    fresh.append(st);
+  } else {
+    const st = document.createElement("div");
+    st.className = "status ok";
+    st.textContent = (job.already_existed ? "이미 있던 파일" : "저장 완료") + (job.duration ? ` · ${fmtDuration(job.duration)}` : "");
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = `/api/jobs/${job.id}/audio`;
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const reveal = Object.assign(document.createElement("button"), { type: "button", textContent: "Finder 에서 보기" });
+    reveal.onclick = () => api(`/api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => alertInline(fresh, e.message));
+    const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "경로 복사" });
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(job.path); copy.textContent = "복사됨"; }
+      catch { copy.textContent = "복사 실패"; }
+      setTimeout(() => (copy.textContent = "경로 복사"), 1500);
+    };
+    actions.append(reveal, copy);
+    fresh.append(st, audio, actions);
+  }
+  if (el) el.replaceWith(fresh);
+  rendered.set(job.id, fresh);
+  return fresh;
+}
+
+function alertInline(el, msg) {
+  const st = el.querySelector(".status");
+  if (st) { st.className = "status err"; st.textContent = msg; }
+}
+
+function render() {
+  const box = $("#jobs");
+  if (!jobs.length) {
+    box.innerHTML = '<div class="empty">아직 받은 곡이 없습니다. 위에 유튜브 링크를 붙여넣어 보세요.</div>';
+    return;
+  }
+  box.querySelector(".empty")?.remove();
+  jobs.forEach((job, i) => {
+    const el = card(job);
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+  });
+}
+
+async function refresh() {
+  jobs = await api("/api/jobs");
+  render();
+  return jobs.some((j) => j.status === "queued" || j.status === "running");
+}
+
+function poll() {
+  clearTimeout(timer);
+  const tick = async () => {
+    let busy = true;
+    try { busy = await refresh(); } catch { /* 서버가 잠깐 안 되면 다음에 다시 */ }
+    if (busy) timer = setTimeout(tick, 600);
+  };
+  timer = setTimeout(tick, 300);
+}
+
+(async () => {
+  outDir = load("ytmp3.outDir");
+  try { defaultOut = (await api("/api/config")).out_dir; } catch {}
+  showFolder();
+  try { if (await refresh()) poll(); } catch { render(); }
+})();
+</script>
+</body>
+</html>

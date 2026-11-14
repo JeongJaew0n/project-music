@@ -4,7 +4,8 @@ AI 로 깔끔한 음원을 뽑아내는 작업 공간. 지금은 첫 단계인 *
 이전 작업(Soundalike·musickit, 2026-10)은 `~/my/Dev/project-music-old-20261114/` 로 옮겨 두었다.
 
 ## ytmp3
-- 실행: `uv run ytmp3 <URL> [<URL> ...] [-o 폴더]` — 기본 저장 폴더 `~/Downloads`, 파일 이름은 `<영상 제목>.mp3`.
+- 화면: `uv run ytmp3-web` (127.0.0.1:8765, `--no-open`, `-o` 기본 저장 폴더). 표준 라이브러리 http.server. Python 수정 후 재시작, `static/` 은 새로고침만.
+- 명령줄: `uv run ytmp3 <URL> [<URL> ...] [-o 폴더]` — 기본 저장 폴더 `~/Downloads`, 파일 이름은 `<영상 제목>.mp3`.
 - 함수: `from ytmp3 import extract_mp3` → `Extracted(url, title, path, duration, already_existed)`. 실패는 `ExtractError`(한국어 메시지).
 - yt-dlp(파이썬 의존성) + ffmpeg. 유튜브 쪽이 바뀌어 깨지면 `uv lock --upgrade-package yt-dlp && uv sync`.
 - yt-dlp 는 유튜브용 JS 런타임으로 deno 를 쓴다(`brew install deno`).
@@ -12,13 +13,14 @@ AI 로 깔끔한 음원을 뽑아내는 작업 공간. 지금은 첫 단계인 *
 ## 시험
 - `uv run pytest -q` — 단위 시험.
 - `YTMP3_NETWORK=1 uv run pytest -q` — 실제 유튜브에서 19초 영상을 받아 확인까지.
+- 화면은 크롬(claude-in-chrome)으로 직접 시험한다 — 서버를 `-o <scratchpad>` 로 띄워 ~/Downloads 를 더럽히지 않는다. 짧은 시험 영상만 쓰지 말고 실제 곡 길이 영상도 넣어 본다(403 은 긴 영상에서 났다).
 - 시험으로 저장 폴더에 만든 파일은 끝나면 정리한다.
 
 ## 구조
 
 | 경로 | 책임 |
 |---|---|
-| `ytmp3/` | 유튜브 링크 → mp3 (FeatureGroup) |
+| `ytmp3/` | 유튜브 링크 → mp3 (FeatureGroup). `extract.py` 엔진 · `__main__.py` 명령줄 · `web.py` + `static/` 화면 |
 | `tests/` | 시험 |
 | `docs/` | 계획·용어·문제 해결 기록 |
 

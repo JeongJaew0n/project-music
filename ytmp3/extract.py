@@ -71,35 +71,73 @@ def extract_mp3(
     out_dir.mkdir(parents=True, exist_ok=True)
     say = progress or (lambda _msg: None)
 
+    before = set(out_dir.iterdir())
+    stem: dict[str, str] = {}  # 이번 영상의 파일 이름(확장자 뺀 것) — 실패 시 정리할 범위
+    try:
+        for attempt in range(1, ATTEMPTS + 1):
+            try:
+                return _extract_once(url, out_dir, say, stem)
+            except DownloadError as e:
+                if attempt < ATTEMPTS and _is_transient(e):
+                    say(f"유튜브가 내려받기를 거절해 다시 시도합니다 ({attempt + 1}/{ATTEMPTS})")
+                    continue
+                raise ExtractError(_clean_error(e)) from e
+        raise AssertionError("unreachable")
+    except BaseException:
+        _remove_leftovers(out_dir, before, stem.get("name"))
+        raise
+
+
+# 유튜브는 가끔 내려받기 주소를 403 으로 거절한다 (같은 영상이 3번에 1번꼴).
+# 정보를 새로 읽으면 새 주소를 받아 대개 바로 된다.
+ATTEMPTS = 3
+
+
+def _is_transient(e: DownloadError) -> bool:
+    msg = str(e)
+    return any(s in msg for s in ("HTTP Error 403", "timed out", "Connection reset", "IncompleteRead"))
+
+
+def _extract_once(url: str, out_dir: Path, say: ProgressFn, stem: dict[str, str]) -> Extracted:
     opts = build_options(out_dir)
     opts["ignoreerrors"] = False  # CLI 기본값('only_download')은 정보 읽기 실패를 None 으로 삼킨다
     opts["logger"] = _QuietLogger()  # 오류는 예외로 받아 한국어로 알린다 — yt-dlp 원문을 따로 찍지 않는다
     opts["progress_hooks"] = [_download_hook(say)]
     opts["postprocessor_hooks"] = [_postprocess_hook(say)]
 
-    try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            say("영상 정보를 읽는 중…")
-            info = ydl.extract_info(url, download=False)
-            if info is None:
-                raise ExtractError(f"영상 정보를 읽지 못했습니다: {url}")
-            if info.get("_type") == "playlist":
-                raise ExtractError("재생목록 링크입니다. 영상 하나의 링크를 주세요.")
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        say("영상 정보를 읽는 중…")
+        info = ydl.extract_info(url, download=False)
+        if info is None:
+            raise ExtractError(f"영상 정보를 읽지 못했습니다: {url}")
+        if info.get("_type") == "playlist":
+            raise ExtractError("재생목록 링크입니다. 영상 하나의 링크를 주세요.")
 
-            title = info.get("title") or info.get("id") or "audio"
-            target = _mp3_path(ydl, info)
-            if target.exists():
-                return Extracted(url, title, target, info.get("duration"), already_existed=True)
+        title = info.get("title") or info.get("id") or "audio"
+        target = _mp3_path(ydl, info)
+        if target.exists():
+            return Extracted(url, title, target, info.get("duration"), already_existed=True)
 
-            say(f"받는 중: {title}")
-            info = ydl.process_ie_result(info, download=True)
-    except DownloadError as e:
-        raise ExtractError(_clean_error(e)) from e
+        stem["name"] = target.stem
+        say(f"받는 중: {title}")
+        info = ydl.process_ie_result(info, download=True)
 
     path = _final_path(info) or target
     if not path.exists():
         raise ExtractError(f"mp3 파일이 만들어지지 않았습니다: {path}")
     return Extracted(url, title, path, info.get("duration"), already_existed=False)
+
+
+def _remove_leftovers(out_dir: Path, before: set[Path], stem: str | None) -> None:
+    """실패했을 때 이번 실행이 만든 중간 파일(썸네일·.part·원본 오디오)만 지운다.
+
+    저장 폴더가 ~/Downloads 라 다른 프로그램도 쓴다 — 새로 생겼고 이름이 이 영상 것인 파일만 건드린다.
+    """
+    if not stem or not out_dir.is_dir():
+        return
+    for p in set(out_dir.iterdir()) - before:
+        if p.is_file() and p.name.startswith(stem + "."):
+            p.unlink(missing_ok=True)
 
 
 def _mp3_path(ydl: yt_dlp.YoutubeDL, info: dict) -> Path:
