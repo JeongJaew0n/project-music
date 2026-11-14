@@ -22,7 +22,7 @@ uv run ytmp3-web        # http://[::1]:8765 이 브라우저로 열림
 ### 명령줄로
 
 ```sh
-uv run ytmp3 "https://www.youtube.com/watch?v=..."            # ~/Downloads/<제목>.mp3
+uv run ytmp3 "https://www.youtube.com/watch?v=..."            # studio/downloads/<제목>.mp3
 uv run ytmp3 URL1 URL2 -o ~/Music/inbox                         # 여러 개, 저장 폴더 지정
 ```
 
@@ -30,6 +30,14 @@ uv run ytmp3 URL1 URL2 -o ~/Music/inbox                         # 여러 개, �
 - 재생목록 링크(`&list=`)여도 그 영상 하나만 받습니다. 같은 이름의 파일이 있으면 다시 받지 않습니다.
 - 유튜브가 가끔 내려받기를 403 으로 거절하면 새로 읽어 최대 3번까지 다시 시도합니다.
 - 유튜브 원본 오디오가 opus 약 130~160kbps 라서 mp3 로 바꿔도 원본보다 좋아지지는 않습니다.
+
+## 작업실 폴더
+
+```
+studio/            (git 제외)
+├── downloads/     받은 곡 — 유튜브에서 받은 mp3 원본
+└── works/         작업 결과 — 음악 작업 결과물
+```
 
 ## 시험
 

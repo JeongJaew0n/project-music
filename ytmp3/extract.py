@@ -11,7 +11,9 @@ from urllib.parse import urlparse
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
-DEFAULT_OUT_DIR = Path.home() / "Downloads"
+from .paths import DOWNLOADS_DIR
+
+DEFAULT_OUT_DIR = DOWNLOADS_DIR  # 작업실의 받은 곡 폴더 (studio/downloads)
 
 # LAME VBR 품질. 0 이 최고(V0, 약 245kbps). 유튜브 원본이 opus ~160kbps 라 이 이상은 의미 없다.
 MP3_QUALITY = "0"
@@ -131,7 +133,7 @@ def _extract_once(url: str, out_dir: Path, say: ProgressFn, stem: dict[str, str]
 def _remove_leftovers(out_dir: Path, before: set[Path], stem: str | None) -> None:
     """실패했을 때 이번 실행이 만든 중간 파일(썸네일·.part·원본 오디오)만 지운다.
 
-    저장 폴더가 ~/Downloads 라 다른 프로그램도 쓴다 — 새로 생겼고 이름이 이 영상 것인 파일만 건드린다.
+    저장 폴더를 -o 로 ~/Downloads 같은 곳으로 주면 다른 프로그램도 쓴다 — 새로 생겼고 이름이 이 영상 것인 파일만 건드린다.
     """
     if not stem or not out_dir.is_dir():
         return

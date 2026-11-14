@@ -334,7 +334,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--host", default="::1",
                    help="바인딩 주소 (기본 ::1). 127.0.0.1 은 이 맥의 tailscaled 가 tailnet 에 그대로 연다")
     p.add_argument("--port", type=int, default=8765)
-    p.add_argument("-o", "--out", type=Path, default=DEFAULT_OUT_DIR, help="기본 저장 폴더")
+    p.add_argument("-o", "--out", type=Path, default=DEFAULT_OUT_DIR,
+                   help=f"기본 저장 폴더 (기본: {DEFAULT_OUT_DIR}). ~/Downloads 처럼 macOS 가 보호하는 폴더는 백그라운드 실행에서 멈춘다")
     p.add_argument("--no-open", action="store_true", help="브라우저를 자동으로 열지 않음")
     p.add_argument("--fixed-out", action="store_true", help="화면에서 저장 폴더를 바꾸지 못하게 함")
     p.add_argument("--no-reveal", action="store_true", help="Finder 에서 보기를 끔")

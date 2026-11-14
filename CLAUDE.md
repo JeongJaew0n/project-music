@@ -3,11 +3,17 @@
 AI 로 깔끔한 음원을 뽑아내는 작업 공간. 지금은 첫 단계인 **유튜브 → mp3 추출**(`ytmp3/`)만 있다.
 이전 작업(Soundalike·musickit, 2026-10)은 `~/my/Dev/project-music-old-20261114/` 로 옮겨 두었다.
 
+## 작업실 (`studio/`, git 제외)
+- `studio/downloads/` 받은 곡(원본 mp3) — `ytmp3`·`ytmp3-web` 의 기본 저장 위치.
+- `studio/works/` 작업 결과 — 음악 작업(AI 등) 결과는 여기에. 받은 곡과 섞지 않는다.
+- 경로는 `ytmp3/paths.py` 한 곳에서 정한다. 용어는 `docs/glossary/README.md`.
+- `~/Downloads` 등 macOS 보호 폴더를 기본값으로 쓰지 않는다 — LaunchAgent 로 도는 서버가 TCC 권한 창에서 멈춘다.
+
 ## ytmp3
 - 화면: `uv run ytmp3-web` ([::1]:8765, `--host`·`--port`·`--no-open`·`-o` 기본 저장 폴더·`--fixed-out`·`--no-reveal`). 표준 라이브러리 http.server. Python 수정 후 재시작, `static/` 은 새로고침만.
 - **127.0.0.1 에 바인딩하지 않는다.** 이 맥의 tailscaled(userspace)가 tailnet 에서 온 연결을 127.0.0.1:<포트> 로 넘겨, 인증 없는 이 앱이 tailnet 전체(회사 컴퓨터 포함)에 열린다. 기본 `::1` 을 지킨다.
-- 홈 서버(tailnet-home): LaunchAgent `com.jjw.ytmp3` 가 [::1]:8740 으로 띄우고 `/apps/ytmp3/` 로 proxy 한다(세션마스터가 관리). proxy 요청(X-Forwarded-*)은 저장 폴더 변경·Finder 열기가 막힌다. POST 는 JSON + 같은 출처만 받는다.
-- 명령줄: `uv run ytmp3 <URL> [<URL> ...] [-o 폴더]` — 기본 저장 폴더 `~/Downloads`, 파일 이름은 `<영상 제목>.mp3`.
+- 홈 서버(tailnet-home): LaunchAgent `com.jjw.ytmp3` 가 [::1]:8740 으로 띄우고 `/apps/ytmp3/` 로 proxy 한다(세션마스터가 관리). 폰 주소 http://jjwui-macbookpro.tailb5e88c.ts.net/apps/ytmp3/, 맥에서는 http://localhost:8700/apps/ytmp3/. 코드를 고치면 `launchctl kickstart -k gui/$(id -u)/com.jjw.ytmp3`. 로그 `~/Library/Logs/ytmp3-server.log`. proxy 요청(X-Forwarded-*)은 저장 폴더 변경·Finder 열기가 막힌다. POST 는 JSON + 같은 출처만 받는다.
+- 명령줄: `uv run ytmp3 <URL> [<URL> ...] [-o 폴더]` — 기본 저장 폴더 `studio/downloads/`, 파일 이름은 `<영상 제목>.mp3`.
 - 함수: `from ytmp3 import extract_mp3` → `Extracted(url, title, path, duration, already_existed)`. 실패는 `ExtractError`(한국어 메시지).
 - yt-dlp(파이썬 의존성) + ffmpeg. 유튜브 쪽이 바뀌어 깨지면 `uv lock --upgrade-package yt-dlp && uv sync`.
 - yt-dlp 는 유튜브용 JS 런타임으로 deno 를 쓴다(`brew install deno`).
@@ -15,7 +21,7 @@ AI 로 깔끔한 음원을 뽑아내는 작업 공간. 지금은 첫 단계인 *
 ## 시험
 - `uv run pytest -q` — 단위 시험.
 - `YTMP3_NETWORK=1 uv run pytest -q` — 실제 유튜브에서 19초 영상을 받아 확인까지.
-- 화면은 크롬(claude-in-chrome)으로 직접 시험한다 — 서버를 `-o <scratchpad>` 로 띄워 ~/Downloads 를 더럽히지 않는다. 짧은 시험 영상만 쓰지 말고 실제 곡 길이 영상도 넣어 본다(403 은 긴 영상에서 났다).
+- 화면은 크롬(claude-in-chrome)으로 직접 시험한다 — 서버를 `-o <scratchpad>` 로 띄워 `studio/` 를 더럽히지 않는다. 짧은 시험 영상만 쓰지 말고 실제 곡 길이 영상도 넣어 본다(403 은 긴 영상에서 났다).
 - 시험으로 저장 폴더에 만든 파일은 끝나면 정리한다.
 
 ## 구조

@@ -204,3 +204,17 @@ def test_flags_lock_folder_and_reveal(tmp_path):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_default_out_is_studio_downloads():
+    """받은 곡은 작업실의 downloads/ 로. LaunchAgent 가 TCC 보호 폴더(~/Downloads)에서 멈추지 않게."""
+    from pathlib import Path
+
+    from ytmp3 import DEFAULT_OUT_DIR
+    from ytmp3.paths import DOWNLOADS_DIR, STUDIO_DIR, WORKS_DIR
+    root = Path(__file__).resolve().parent.parent
+    assert STUDIO_DIR == root / "studio"
+    assert DEFAULT_OUT_DIR == DOWNLOADS_DIR == STUDIO_DIR / "downloads"
+    assert WORKS_DIR == STUDIO_DIR / "works"
+    home = Path.home()
+    assert not any(DOWNLOADS_DIR.is_relative_to(home / d) for d in ("Downloads", "Documents", "Desktop"))
