@@ -95,6 +95,7 @@
 const $ = (s) => document.querySelector(s);
 let outDir = null;           // 화면에서 고른 저장 폴더 (없으면 서버 기본값)
 let defaultOut = "";
+let canReveal = true;
 let jobs = [];
 let timer = null;
 const rendered = new Map(); // id → 카드 요소 (재생 중인 audio 를 다시 그리지 않으려고)
@@ -203,6 +204,7 @@ function card(job) {
     const actions = document.createElement("div");
     actions.className = "actions";
     const reveal = Object.assign(document.createElement("button"), { type: "button", textContent: "Finder 에서 보기" });
+    reveal.hidden = !canReveal;
     reveal.onclick = () => api(`api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => alertInline(fresh, e.message));
     const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "경로 복사" });
     copy.onclick = async () => {
@@ -258,7 +260,12 @@ function poll() {
 
 (async () => {
   outDir = load("ytmp3.outDir");
-  try { defaultOut = (await api("api/config")).out_dir; } catch {}
+  try {
+    const cfg = await api("api/config");
+    defaultOut = cfg.out_dir;
+    canReveal = cfg.can_reveal;
+    if (!cfg.can_change_out) { outDir = null; $("#outEdit").hidden = true; }
+  } catch {}
   showFolder();
   try { if (await refresh()) poll(); } catch { render(); }
 })();

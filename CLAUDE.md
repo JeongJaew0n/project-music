@@ -4,7 +4,9 @@ AI 로 깔끔한 음원을 뽑아내는 작업 공간. 지금은 첫 단계인 *
 이전 작업(Soundalike·musickit, 2026-10)은 `~/my/Dev/project-music-old-20261114/` 로 옮겨 두었다.
 
 ## ytmp3
-- 화면: `uv run ytmp3-web` (127.0.0.1:8765, `--no-open`, `-o` 기본 저장 폴더). 표준 라이브러리 http.server. Python 수정 후 재시작, `static/` 은 새로고침만.
+- 화면: `uv run ytmp3-web` ([::1]:8765, `--host`·`--port`·`--no-open`·`-o` 기본 저장 폴더·`--fixed-out`·`--no-reveal`). 표준 라이브러리 http.server. Python 수정 후 재시작, `static/` 은 새로고침만.
+- **127.0.0.1 에 바인딩하지 않는다.** 이 맥의 tailscaled(userspace)가 tailnet 에서 온 연결을 127.0.0.1:<포트> 로 넘겨, 인증 없는 이 앱이 tailnet 전체(회사 컴퓨터 포함)에 열린다. 기본 `::1` 을 지킨다.
+- 홈 서버(tailnet-home): LaunchAgent `com.jjw.ytmp3` 가 [::1]:8740 으로 띄우고 `/apps/ytmp3/` 로 proxy 한다(세션마스터가 관리). proxy 요청(X-Forwarded-*)은 저장 폴더 변경·Finder 열기가 막힌다. POST 는 JSON + 같은 출처만 받는다.
 - 명령줄: `uv run ytmp3 <URL> [<URL> ...] [-o 폴더]` — 기본 저장 폴더 `~/Downloads`, 파일 이름은 `<영상 제목>.mp3`.
 - 함수: `from ytmp3 import extract_mp3` → `Extracted(url, title, path, duration, already_existed)`. 실패는 `ExtractError`(한국어 메시지).
 - yt-dlp(파이썬 의존성) + ffmpeg. 유튜브 쪽이 바뀌어 깨지면 `uv lock --upgrade-package yt-dlp && uv sync`.

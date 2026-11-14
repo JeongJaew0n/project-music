@@ -33,7 +33,10 @@ def server(tmp_path, monkeypatch):
 
 def call(base, path, body=None, headers=None):
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(base + path, data=data, headers=headers or {},
+    headers = dict(headers or {})
+    if data is not None:
+        headers.setdefault("Content-Type", "application/json")
+    req = urllib.request.Request(base + path, data=data, headers=headers,
                                  method="POST" if data is not None else "GET")
     try:
         with urllib.request.urlopen(req) as r:
@@ -56,7 +59,7 @@ def test_index_and_config(server):
     base, out = server
     status, headers, raw = call(base, "/")
     assert status == 200 and "text/html" in headers["Content-Type"] and "ytmp3".encode() in raw
-    assert json.loads(call(base, "/api/config")[2]) == {"out_dir": str(out)}
+    assert json.loads(call(base, "/api/config")[2]) == {"out_dir": str(out), "can_change_out": True, "can_reveal": True}
 
 
 def test_job_done_and_audio_ranges(server):
@@ -119,3 +122,85 @@ def test_page_uses_only_relative_paths():
     """홈 서버 /apps/<id>/ 아래에서도 열리려면 화면이 / 로 시작하는 경로를 쓰면 안 된다."""
     html = (web.STATIC / "index.html").read_text()
     assert '"/api' not in html and "`/api" not in html and "'/api" not in html
+
+
+PROXY = {"X-Forwarded-Prefix": "/apps/ytmp3", "X-Forwarded-For": "100.64.0.2"}
+
+
+def test_binds_ipv6_loopback_by_default(tmp_path):
+    srv = web.make_server("::1", 0, tmp_path)
+    try:
+        assert srv.server_address[0] == "::1"
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        port = srv.server_address[1]
+        assert call(f"http://[::1]:{port}", "/api/config")[0] == 200
+        with pytest.raises(urllib.error.URLError):
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/config", timeout=2)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+@pytest.mark.parametrize("headers", [
+    {"Origin": "https://evil.example"},
+    {"Origin": "http://127.0.0.1:1"},
+    {"Sec-Fetch-Site": "cross-site"},
+    {"Sec-Fetch-Site": "same-site"},
+])
+def test_cross_origin_post_rejected(server, headers):
+    base, _ = server
+    status, _, raw = call(base, "/api/jobs", {"url": "https://youtu.be/ok"}, headers)
+    assert status == 403 and "다른 사이트" in json.loads(raw)["error"]
+    assert json.loads(call(base, "/api/jobs")[2]) == []
+
+
+def test_same_origin_post_allowed(server):
+    base, _ = server
+    host = base.removeprefix("http://")
+    status, _, _ = call(base, "/api/jobs", {"url": "https://youtu.be/ok"},
+                        {"Origin": base, "Host": host, "Sec-Fetch-Site": "same-origin"})
+    assert status == 201
+
+
+def test_proxy_origin_matches_forwarded_host(server):
+    base, _ = server
+    headers = {**PROXY, "Host": "mac.tail.ts.net", "Origin": "https://mac.tail.ts.net"}
+    assert call(base, "/api/jobs", {"url": "https://youtu.be/ok"}, headers)[0] == 201
+    headers = {**PROXY, "Host": "[::1]:8740", "X-Forwarded-Host": "mac.tail.ts.net", "Origin": "https://mac.tail.ts.net"}
+    assert call(base, "/api/jobs", {"url": "https://youtu.be/ok"}, headers)[0] == 201
+
+
+def test_form_post_rejected(server):
+    base, _ = server
+    req = urllib.request.Request(base + "/api/jobs", data=b"url=https://youtu.be/ok", method="POST",
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+    with pytest.raises(urllib.error.HTTPError) as e:
+        urllib.request.urlopen(req)
+    assert e.value.code == 415
+
+
+def test_proxy_cannot_change_folder_or_reveal(server, tmp_path):
+    base, out = server
+    cfg = json.loads(call(base, "/api/config", headers=PROXY)[2])
+    assert cfg == {"out_dir": str(out), "can_change_out": False, "can_reveal": False}
+    status, _, raw = call(base, "/api/jobs", {"url": "https://youtu.be/ok", "out_dir": "/tmp/elsewhere"}, PROXY)
+    assert status == 403 and "저장 폴더" in json.loads(raw)["error"]
+    job = wait(base, json.loads(call(base, "/api/jobs", {"url": "https://youtu.be/ok"}, PROXY)[2])["id"])
+    assert job["status"] == "done"
+    status, _, raw = call(base, f"/api/jobs/{job['id']}/reveal", {}, PROXY)
+    assert status == 403 and "Finder" in json.loads(raw)["error"]
+    local = json.loads(call(base, "/api/config")[2])
+    assert local["can_change_out"] and local["can_reveal"]
+
+
+def test_flags_lock_folder_and_reveal(tmp_path):
+    srv = web.make_server("127.0.0.1", 0, tmp_path, allow_reveal=False, fixed_out=True)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+    try:
+        cfg = json.loads(call(base, "/api/config")[2])
+        assert not cfg["can_change_out"] and not cfg["can_reveal"]
+        assert call(base, "/api/jobs", {"url": "https://youtu.be/ok", "out_dir": "/tmp/x"})[0] == 403
+    finally:
+        srv.shutdown()
+        srv.server_close()

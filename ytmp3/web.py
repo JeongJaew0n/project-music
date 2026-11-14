@@ -5,16 +5,25 @@ API
   GET  /api/jobs            → 이번 실행에서 만든 작업 목록 (최신 먼저)
   GET  /api/jobs/<id>       → 작업 상태
   GET  /api/jobs/<id>/audio → 결과 mp3 (Range 지원 — 재생 위치 이동용, ?download=1 이면 내려받기)
+  POST /api/jobs/<id>/reveal→ Finder 에서 보기 (맥 앞에서 직접 열었을 때만)
+  GET  /api/config          → {"out_dir", "can_change_out", "can_reveal"}
 
 화면은 상대 경로(api/...)만 쓴다 — 홈 서버의 /apps/<id>/ 같은 하위 경로 뒤에서도 열리게.
-  POST /api/jobs/<id>/reveal→ Finder 에서 보기
-  GET  /api/config          → {"out_dir": 기본 저장 폴더}
+
+보안 — 인증이 없고 POST 하나로 이 맥에서 yt-dlp 가 돈다.
+- 기본으로 [::1] 에만 바인딩한다. 이 맥의 tailscaled(userspace)는 tailnet 에서 온 연결을
+  127.0.0.1:<포트> 로 넘기므로, 127.0.0.1 에 바인딩하면 tailnet 의 모든 기기에 그대로 열린다.
+- POST 는 JSON 만 받고, 다른 출처(Origin·Sec-Fetch-Site)에서 온 것은 거부한다 — 다른 사이트가
+  브라우저를 시켜 작업을 넣지 못하게.
+- 프록시를 거친 요청(X-Forwarded-*)은 저장 폴더를 바꾸거나 Finder 를 열 수 없다.
+  `--fixed-out`·`--no-reveal` 로 항상 막을 수도 있다.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import socket
 import mimetypes
 import queue
 import re
@@ -28,7 +37,7 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from .extract import DEFAULT_OUT_DIR, ExtractError, check_url, extract_mp3
 
@@ -128,9 +137,15 @@ class Runner:
         job.status = "done"
 
 
+# 홈 서버 proxy 는 X-Forwarded-Prefix: /apps/ytmp3 를 붙인다.
+FORWARD_HEADERS = ("X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Prefix", "Forwarded")
+
+
 class Handler(BaseHTTPRequestHandler):
     runner: Runner
     default_out: Path
+    allow_reveal: bool = True
+    fixed_out: bool = False
 
     # ---- 라우팅 ----
     def do_GET(self) -> None:
@@ -138,7 +153,11 @@ class Handler(BaseHTTPRequestHandler):
         if parts in ([], ["index.html"]):
             return self._static("index.html")
         if parts == ["api", "config"]:
-            return self._json({"out_dir": str(self.default_out)})
+            return self._json({
+                "out_dir": str(self.default_out),
+                "can_change_out": self._can_change_out(),
+                "can_reveal": self._can_reveal(),
+            })
         if parts == ["api", "jobs"]:
             return self._json([j.to_json() for j in self.runner.all()])
         if len(parts) == 3 and parts[:2] == ["api", "jobs"]:
@@ -152,10 +171,16 @@ class Handler(BaseHTTPRequestHandler):
         self._error(HTTPStatus.NOT_FOUND, "없는 주소입니다")
 
     def do_POST(self) -> None:
+        if not self._same_origin():
+            return self._error(HTTPStatus.FORBIDDEN, "다른 사이트에서 온 요청은 받지 않습니다")
+        if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/json":
+            return self._error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "JSON 요청만 받습니다")
         parts = self._parts()
         if parts == ["api", "jobs"]:
             return self._create()
         if len(parts) == 4 and parts[:2] == ["api", "jobs"] and parts[3] == "reveal":
+            if not self._can_reveal():
+                return self._error(HTTPStatus.FORBIDDEN, "Finder 열기는 이 맥에서 직접 연 화면에서만 됩니다")
             job = self._job(parts[2])
             if job is None:
                 return
@@ -177,6 +202,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(HTTPStatus.BAD_REQUEST, str(e))
         out = str(body.get("out_dir") or "").strip()
         out_dir = Path(out).expanduser() if out else self.default_out
+        if out_dir != self.default_out and not self._can_change_out():
+            return self._error(HTTPStatus.FORBIDDEN, "이 화면에서는 저장 폴더를 바꿀 수 없습니다")
         if not out_dir.is_absolute():
             return self._error(HTTPStatus.BAD_REQUEST, f"저장 폴더는 절대 경로여야 합니다: {out}")
         job = self.runner.submit(url, out_dir)
@@ -224,6 +251,26 @@ class Handler(BaseHTTPRequestHandler):
                     return  # 브라우저가 재생 위치를 옮기며 연결을 끊는 건 정상
                 remaining -= len(chunk)
 
+    # ---- 보안 ----
+    def _via_proxy(self) -> bool:
+        return any(self.headers.get(h) for h in FORWARD_HEADERS)
+
+    def _can_change_out(self) -> bool:
+        return not self.fixed_out and not self._via_proxy()
+
+    def _can_reveal(self) -> bool:
+        return self.allow_reveal and not self._via_proxy()
+
+    def _same_origin(self) -> bool:
+        """브라우저가 다른 출처에서 보낸 POST 를 거른다. 브라우저가 아닌 도구(curl)는 Origin 이 없어 통과."""
+        if (self.headers.get("Sec-Fetch-Site") or "same-origin") not in ("same-origin", "none"):
+            return False
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        hosts = {h.strip().lower() for h in (self.headers.get("Host"), self.headers.get("X-Forwarded-Host")) if h}
+        return urlparse(origin).netloc.lower() in hosts
+
     # ---- 도우미 ----
     def _parts(self) -> list[str]:
         return [p for p in self.path.split("?", 1)[0].split("/") if p]
@@ -265,22 +312,38 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write(f"{self.address_string()} {fmt % args}\n")
 
 
-def make_server(host: str, port: int, default_out: Path) -> ThreadingHTTPServer:
-    handler = type("BoundHandler", (Handler,), {"runner": Runner(), "default_out": default_out})
-    server = ThreadingHTTPServer((host, port), handler)
+class ThreadingHTTPServerV6(ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+
+
+def make_server(
+    host: str, port: int, default_out: Path, *, allow_reveal: bool = True, fixed_out: bool = False
+) -> ThreadingHTTPServer:
+    handler = type("BoundHandler", (Handler,), {
+        "runner": Runner(), "default_out": default_out,
+        "allow_reveal": allow_reveal, "fixed_out": fixed_out,
+    })
+    cls = ThreadingHTTPServerV6 if ":" in host else ThreadingHTTPServer
+    server = cls((host, port), handler)
     server.daemon_threads = True
     return server
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="ytmp3-web", description="유튜브 → mp3 로컬 웹 화면")
+    p.add_argument("--host", default="::1",
+                   help="바인딩 주소 (기본 ::1). 127.0.0.1 은 이 맥의 tailscaled 가 tailnet 에 그대로 연다")
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("-o", "--out", type=Path, default=DEFAULT_OUT_DIR, help="기본 저장 폴더")
     p.add_argument("--no-open", action="store_true", help="브라우저를 자동으로 열지 않음")
+    p.add_argument("--fixed-out", action="store_true", help="화면에서 저장 폴더를 바꾸지 못하게 함")
+    p.add_argument("--no-reveal", action="store_true", help="Finder 에서 보기를 끔")
     args = p.parse_args(argv)
 
-    server = make_server("127.0.0.1", args.port, args.out.expanduser())
-    url = f"http://127.0.0.1:{server.server_address[1]}/"
+    server = make_server(args.host, args.port, args.out.expanduser(),
+                         allow_reveal=not args.no_reveal, fixed_out=args.fixed_out)
+    port = server.server_address[1]
+    url = f"http://[{args.host}]:{port}/" if ":" in args.host else f"http://{args.host}:{port}/"
     print(f"ytmp3 웹 화면: {url}  (끝내려면 Ctrl+C)", flush=True)
     if not args.no_open:
         threading.Timer(0.5, webbrowser.open, (url,)).start()
