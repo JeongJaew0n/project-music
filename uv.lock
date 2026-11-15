@@ -377,7 +377,7 @@ wheels = [
 
 [[package]]
 name = "project-music"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "yt-dlp", extra = ["default"] },

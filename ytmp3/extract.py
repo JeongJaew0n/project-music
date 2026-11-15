@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
-from .paths import DOWNLOADS_DIR
+from shared.paths import DOWNLOADS_DIR
 
 DEFAULT_OUT_DIR = DOWNLOADS_DIR  # 작업실의 받은 곡 폴더 (studio/downloads)
 

@@ -14,6 +14,6 @@ macOS 개인정보 보호(TCC)는 `~/Downloads`·`~/Documents`·`~/Desktop` 을 
 권한 창을 띄운 채 시스템 호출이 답을 기다리며 막힌다(거부되면 PermissionError).
 
 ## 해결
-- 백그라운드 서버는 TCC 보호 폴더에 쓰지 않는다. ytmp3 는 프로젝트 안 `studio/downloads/` 에 저장한다 (`ytmp3/paths.py`).
+- 백그라운드 서버는 TCC 보호 폴더에 쓰지 않는다. ytmp3 는 프로젝트 안 `studio/downloads/` 에 저장한다 (`shared/paths.py`).
 - 꼭 보호 폴더를 써야 하면 시스템 설정 > 개인정보 보호 및 보안 > 파일 및 폴더 에서 그 python 실행 파일에 권한을 줘야 하는데,
   uv 가 python 을 바꾸면 경로가 달라져 다시 줘야 한다.

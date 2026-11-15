@@ -8,6 +8,7 @@
   :root {
     --bg: #f6f5f2; --panel: #ffffff; --ink: #1c1b19; --muted: #6b6862; --line: #e3e0da;
     --accent: #d2381f; --accent-ink: #ffffff; --ok: #2f7d4f; --err: #b3261e; --track: #ece9e3;
+    --wave: #cfcac1; --sel: rgba(210, 56, 31, .10);
     --radius: 12px;
     color-scheme: light;
   }
@@ -15,6 +16,7 @@
     :root {
       --bg: #151413; --panel: #1f1e1c; --ink: #f1efea; --muted: #a29e96; --line: #33312d;
       --accent: #ff5a3c; --accent-ink: #1a0f0c; --ok: #6cc28f; --err: #ff8a80; --track: #2c2a27;
+      --wave: #4d4943; --sel: rgba(255, 90, 60, .14);
       color-scheme: dark;
     }
   }
@@ -70,12 +72,44 @@
     display: inline-block; text-decoration: none; border-radius: var(--radius); border: 1px solid var(--accent);
     background: var(--accent); color: var(--accent-ink); font-weight: 600;
   }
+
+  h2 { font-size: 17px; margin: 40px 0 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  h2 small { font-size: 13px; font-weight: 400; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+  .list { display: grid; gap: 6px; }
+  .row { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 8px 14px; }
+  .row .name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+  .row.active { border-color: var(--accent); }
+  .row button { font-size: 13px; padding: 6px 12px; flex: none; }
+  .empty.small { padding: 18px 0; font-size: 14px; }
+
+  #editor { background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin-top: 12px; }
+  .ed-head { display: flex; gap: 8px; align-items: flex-start; }
+  .ed-head .title { flex: 1; font-weight: 600; overflow-wrap: anywhere; }
+  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+  .wave { position: relative; height: 120px; background: var(--track); border-radius: 8px; overflow: hidden; }
+  .wave canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  .wave .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  .wave .msg[hidden] { display: none; }
+  .range { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 14px; }
+  .range label { display: flex; align-items: center; gap: 6px; }
+  .range input { font: inherit; width: 92px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .range input.short { width: 64px; }
+  .range button { font-size: 13px; padding: 6px 10px; }
+  .range .len { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .range .len b { color: var(--ink); }
+  .ed-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .ed-actions button.primary { padding: 10px 18px; }
+  .ed-actions button { padding: 10px 14px; }
+  .job.fresh { border-color: var(--ok); }
+  #cuts { display: grid; gap: 12px; }
+  .testmode { background: var(--ink); color: var(--bg); font-size: 13px; text-align: center; padding: 6px 12px; border-radius: 8px; margin-bottom: 16px; }
 </style>
 </head>
 <body>
 <main>
+  <div class="testmode" id="testmode" hidden>시험 모드 · 소리가 모두 꺼져 있습니다</div>
   <h1>yt<span>mp3</span></h1>
-  <p class="sub">유튜브 링크를 넣으면 mp3 로 뽑아 저장 폴더에 넣습니다.</p>
+  <p class="sub">유튜브 링크를 넣으면 mp3 로 뽑아 저장 폴더에 넣습니다. 받은 곡은 원하는 구간만 잘라 따로 저장할 수 있습니다.</p>
 
   <form id="form" autocomplete="off" novalidate>
     <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=…" aria-label="유튜브 링크" autofocus>
@@ -89,6 +123,38 @@
   </div>
 
   <section id="jobs" aria-live="polite"></section>
+
+  <h2>받은 곡 <small>골라서 구간을 자릅니다</small></h2>
+  <section class="list" id="songs"></section>
+
+  <section id="editor" hidden aria-label="구간 자르기">
+    <div class="ed-head">
+      <div class="title" id="edName"></div>
+      <button class="linkbtn" type="button" id="edClose">닫기</button>
+    </div>
+    <p class="hint">파형을 끌어 구간을 고르고, 양 끝을 끌어 다듬습니다. 한 번 누르면 그 위치부터 재생합니다.</p>
+    <div class="wave"><canvas id="wave" aria-label="파형"></canvas><div class="msg" id="waveMsg">파형 읽는 중…</div></div>
+    <audio id="edAudio" controls preload="auto"></audio>
+    <div class="range">
+      <label>시작 <input id="edStart" inputmode="decimal" aria-label="시작 시간"></label>
+      <button type="button" id="setStart">지금 위치로</button>
+      <label>끝 <input id="edEnd" inputmode="decimal" aria-label="끝 시간"></label>
+      <button type="button" id="setEnd">지금 위치로</button>
+    </div>
+    <div class="range">
+      <span class="len">길이 <b id="edLen">–</b></span>
+      <label>페이드 인 <input class="short" id="fadeIn" type="number" min="0" step="0.1" value="0">초</label>
+      <label>페이드 아웃 <input class="short" id="fadeOut" type="number" min="0" step="0.1" value="0">초</label>
+    </div>
+    <div class="ed-actions">
+      <button type="button" id="preview">▶ 구간 듣기</button>
+      <button type="button" class="primary" id="doCut">잘라서 저장</button>
+      <span class="status" id="edMsg" role="status"></span>
+    </div>
+  </section>
+
+  <h2>잘라낸 곡 <small id="cutsDir"></small></h2>
+  <section id="cuts" aria-live="polite"></section>
 </main>
 
 <script>
@@ -96,6 +162,7 @@ const $ = (s) => document.querySelector(s);
 let outDir = null;           // 화면에서 고른 저장 폴더 (없으면 서버 기본값)
 let defaultOut = "";
 let canReveal = true;
+let songs = [];
 let jobs = [];
 let timer = null;
 const rendered = new Map(); // id → 카드 요소 (재생 중인 audio 를 다시 그리지 않으려고)
@@ -217,6 +284,11 @@ function card(job) {
     });
     save.setAttribute("download", job.file);
     actions.append(save, reveal, copy);
+    if (job.out_dir === defaultOut) {
+      const cut = Object.assign(document.createElement("button"), { type: "button", textContent: "구간 자르기" });
+      cut.onclick = () => openEditor(job.file);
+      actions.append(cut);
+    }
     fresh.append(st, audio, actions);
   }
   if (el) el.replaceWith(fresh);
@@ -232,7 +304,7 @@ function alertInline(el, msg) {
 function render() {
   const box = $("#jobs");
   if (!jobs.length) {
-    box.innerHTML = '<div class="empty">아직 받은 곡이 없습니다. 위에 유튜브 링크를 붙여넣어 보세요.</div>';
+    box.innerHTML = '<div class="empty">유튜브 링크를 붙여넣으면 여기에 받는 과정이 나옵니다.</div>';
     return;
   }
   box.querySelector(".empty")?.remove();
@@ -242,9 +314,12 @@ function render() {
   });
 }
 
+let doneCount = -1;
 async function refresh() {
   jobs = await api("api/jobs");
   render();
+  const done = jobs.filter((j) => j.status === "done").length;
+  if (done !== doneCount) { doneCount = done; loadSongs(); }
   return jobs.some((j) => j.status === "queued" || j.status === "running");
 }
 
@@ -258,16 +333,266 @@ function poll() {
   timer = setTimeout(tick, 300);
 }
 
+/* ---------- 받은 곡 · 구간 자르기 · 잘라낸 곡 ---------- */
+const enc = encodeURIComponent;
+const ed = { name: null, duration: 0, peaks: [], start: 0, end: 0, previewing: false, drag: null, raf: 0 };
+const audio = $("#edAudio");
+const canvas = $("#wave");
+
+function fmt(t) {
+  t = Math.round(t * 100) / 100;
+  const m = Math.floor(t / 60), s = t - m * 60;
+  const frac = (s % 1).toFixed(2).slice(1).replace(/0+$/, "").replace(/\.$/, "");
+  return `${m}:${String(Math.floor(s)).padStart(2, "0")}${frac}`;
+}
+function parseTime(text) {
+  const m = String(text).trim().match(/^(?:(?:(\d+):)?(\d+):)?(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  return (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + parseFloat(m[3]);
+}
+const r2 = (t) => Math.round(t * 100) / 100;
+
+function empty(text) { return Object.assign(document.createElement("div"), { className: "empty small", textContent: text }); }
+
+async function loadSongs() {
+  try { songs = await api("api/songs"); } catch { return; }
+  const box = $("#songs");
+  box.replaceChildren();
+  if (!songs.length) { box.append(empty("받은 곡이 없습니다. 위에서 먼저 받아 주세요.")); return; }
+  for (const s of songs) {
+    const row = Object.assign(document.createElement("div"), { className: "row" + (s.name === ed.name ? " active" : "") });
+    row.append(Object.assign(document.createElement("span"), { className: "name", textContent: s.name }));
+    const b = Object.assign(document.createElement("button"), { type: "button", textContent: "자르기" });
+    b.onclick = () => openEditor(s.name);
+    row.append(b);
+    box.append(row);
+  }
+}
+
+async function loadCuts(fresh) {
+  let cuts = [];
+  try { cuts = await api("api/cuts"); } catch { return; }
+  const box = $("#cuts");
+  box.replaceChildren();
+  if (!cuts.length) { box.append(empty("아직 잘라낸 곡이 없습니다.")); return; }
+  for (const c of cuts) {
+    const card = Object.assign(document.createElement("article"), { className: "job" + (c.name === fresh ? " fresh" : "") });
+    card.append(Object.assign(document.createElement("div"), { className: "title", textContent: c.name }));
+    const a = Object.assign(document.createElement("audio"), { controls: true, preload: c.name === fresh ? "metadata" : "none" });
+    a.src = `api/cuts/${enc(c.name)}/audio`;
+    const dl = Object.assign(document.createElement("a"), { href: `api/cuts/${enc(c.name)}/audio?download=1`, textContent: "다운로드", className: "btn" });
+    dl.setAttribute("download", c.name);
+    const actions = Object.assign(document.createElement("div"), { className: "actions" });
+    actions.append(dl);
+    card.append(a, actions);
+    box.append(card);
+  }
+}
+
+async function openEditor(name) {
+  stopPreview();
+  Object.assign(ed, { name, duration: 0, peaks: [], start: 0, end: 0 });
+  $("#editor").hidden = false;
+  $("#edName").textContent = name;
+  $("#edMsg").textContent = ""; $("#edMsg").className = "status";
+  $("#waveMsg").textContent = "파형 읽는 중…"; $("#waveMsg").hidden = false;
+  audio.src = `api/songs/${enc(name)}/audio`;
+  syncInputs(); loadSongs();
+  $("#editor").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  try {
+    const w = await api(`api/songs/${enc(name)}/peaks?n=1200`);
+    if (ed.name !== name) return;
+    Object.assign(ed, { duration: w.duration, peaks: w.peaks, start: 0, end: r2(w.duration) });
+    $("#waveMsg").hidden = true;
+  } catch (e) {
+    $("#waveMsg").textContent = e.message;
+  }
+  syncInputs(); draw();
+}
+
+$("#edClose").onclick = () => { stopPreview(); audio.removeAttribute("src"); audio.load(); ed.name = null; $("#editor").hidden = true; loadSongs(); };
+
+function syncInputs() {
+  $("#edStart").value = ed.duration ? fmt(ed.start) : "";
+  $("#edEnd").value = ed.duration ? fmt(ed.end) : "";
+  $("#edLen").textContent = ed.duration ? `${fmt(ed.end - ed.start)} / ${fmt(ed.duration)}` : "–";
+  $("#doCut").disabled = $("#preview").disabled = !ed.duration;
+}
+
+function color(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  if (!ed.duration) return;
+  const X = (t) => (t / ed.duration) * w;
+  const xs = X(ed.start), xe = X(ed.end);
+  g.fillStyle = color("--sel");
+  g.fillRect(xs, 0, xe - xs, h);
+  const n = ed.peaks.length, mid = h / 2, bar = 2, gap = 1;
+  const on = color("--accent"), off = color("--wave");
+  for (let x = 0; x < w; x += bar + gap) {
+    const i0 = Math.floor((x / w) * n), i1 = Math.max(i0 + 1, Math.floor(((x + bar + gap) / w) * n));
+    let p = 0;
+    for (let i = i0; i < i1 && i < n; i++) p = Math.max(p, ed.peaks[i]);
+    const bh = Math.max(1, p * (h - 12));
+    g.fillStyle = x + bar >= xs && x <= xe ? on : off;
+    g.fillRect(x, mid - bh / 2, bar, bh);
+  }
+  g.fillStyle = on;
+  for (const x of [xs, xe]) {
+    g.fillRect(Math.round(x) - 1, 0, 2, h);
+    g.fillRect(Math.round(x) - 5, 0, 10, 8);
+    g.fillRect(Math.round(x) - 5, h - 8, 10, 8);
+  }
+  if (audio.getAttribute("src") && !isNaN(audio.currentTime)) {
+    g.fillStyle = color("--ink");
+    g.fillRect(Math.round(X(audio.currentTime)), 0, 1, h);
+  }
+}
+
+function tick() {
+  if (ed.previewing && audio.currentTime >= ed.end) { audio.pause(); audio.currentTime = ed.end; }
+  draw();
+  ed.raf = audio.paused ? 0 : requestAnimationFrame(tick);
+}
+audio.addEventListener("play", () => { cancelAnimationFrame(ed.raf); ed.raf = requestAnimationFrame(tick); });
+audio.addEventListener("pause", () => {
+  if (!audio.paused) return;  // 앞서 멈춘 것의 늦게 온 알림 — 그사이 구간 듣기가 다시 시작됐다
+  ed.previewing = false; $("#preview").textContent = "▶ 구간 듣기"; draw();
+});
+audio.addEventListener("seeked", draw);
+window.addEventListener("resize", draw);
+
+function stopPreview() { ed.previewing = false; if (!audio.paused) audio.pause(); }
+
+$("#preview").onclick = () => {
+  if (ed.previewing) return stopPreview();
+  audio.currentTime = ed.start;
+  ed.previewing = true;
+  $("#preview").textContent = "■ 멈춤";
+  audio.play().catch(() => { ed.previewing = false; });
+};
+
+function timeAt(e) {
+  const r = canvas.getBoundingClientRect();
+  return r2(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * ed.duration);
+}
+const MIN_LEN = 0.05;
+canvas.addEventListener("pointerdown", (e) => {
+  if (!ed.duration) return;
+  canvas.setPointerCapture(e.pointerId);
+  const r = canvas.getBoundingClientRect();
+  const px = e.clientX - r.left, X = (t) => (t / ed.duration) * r.width;
+  const near = e.pointerType === "touch" ? 22 : 10;
+  const ds = Math.abs(px - X(ed.start)), de = Math.abs(px - X(ed.end));
+  if (ds <= near && ds <= de) ed.drag = { mode: "start" };
+  else if (de <= near) ed.drag = { mode: "end" };
+  else ed.drag = { mode: "new", anchor: timeAt(e), x0: px, moved: false };
+});
+canvas.addEventListener("pointermove", (e) => {
+  const d = ed.drag;
+  if (!d) return;
+  const t = timeAt(e);
+  if (d.mode === "start") ed.start = Math.min(t, r2(ed.end - MIN_LEN));
+  else if (d.mode === "end") ed.end = Math.max(t, r2(ed.start + MIN_LEN));
+  else {
+    if (Math.abs(e.clientX - canvas.getBoundingClientRect().left - d.x0) > 4) d.moved = true;
+    if (!d.moved) return;
+    ed.start = Math.min(d.anchor, t); ed.end = Math.max(d.anchor, t);
+    if (ed.end - ed.start < MIN_LEN) ed.end = Math.min(ed.duration, r2(ed.start + MIN_LEN));
+  }
+  syncInputs(); draw();
+});
+function endDrag(e) {
+  const d = ed.drag;
+  ed.drag = null;
+  if (d && d.mode === "new" && !d.moved && e.type === "pointerup") {
+    ed.previewing = false;
+    audio.currentTime = timeAt(e);
+    audio.play().catch(() => {});
+  }
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+function setFromInput(which) {
+  const input = which === "start" ? $("#edStart") : $("#edEnd");
+  const t = parseTime(input.value);
+  const msg = $("#edMsg");
+  if (t == null || t > ed.duration) {
+    msg.className = "status err";
+    msg.textContent = t == null ? `시간 형식이 아닙니다: ${input.value} (예: 1:23.5 또는 83.5)` : `곡 길이(${fmt(ed.duration)})를 넘습니다`;
+    return syncInputs();
+  }
+  if (which === "start") { ed.start = r2(t); if (ed.end - ed.start < MIN_LEN) ed.end = Math.min(ed.duration, r2(ed.start + MIN_LEN)); }
+  else { ed.end = r2(t); if (ed.end - ed.start < MIN_LEN) ed.start = Math.max(0, r2(ed.end - MIN_LEN)); }
+  msg.textContent = "";
+  syncInputs(); draw();
+}
+for (const which of ["start", "end"]) {
+  const input = which === "start" ? $("#edStart") : $("#edEnd");
+  input.addEventListener("change", () => setFromInput(which));
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
+}
+$("#setStart").onclick = () => {
+  if (!ed.duration) return;
+  ed.start = r2(audio.currentTime || 0);
+  if (ed.end - ed.start < MIN_LEN) ed.end = r2(ed.duration);
+  syncInputs(); draw();
+};
+$("#setEnd").onclick = () => {
+  if (!ed.duration) return;
+  ed.end = r2(audio.currentTime || 0);
+  if (ed.end - ed.start < MIN_LEN) ed.start = 0;
+  syncInputs(); draw();
+};
+
+$("#doCut").onclick = async () => {
+  const btn = $("#doCut"), msg = $("#edMsg");
+  btn.disabled = true;
+  msg.className = "status"; msg.textContent = "자르는 중…";
+  try {
+    const c = await api("api/cuts", { method: "POST", body: JSON.stringify({
+      song: ed.name, start: ed.start, end: ed.end,
+      fade_in: parseFloat($("#fadeIn").value) || 0, fade_out: parseFloat($("#fadeOut").value) || 0,
+    }) });
+    msg.className = "status ok";
+    msg.textContent = `저장했습니다 · ${fmt(c.duration)} → 아래 잘라낸 곡`;
+    await loadCuts(c.file);
+  } catch (e) {
+    msg.className = "status err"; msg.textContent = e.message;
+  } finally {
+    btn.disabled = !ed.duration;
+  }
+};
+
 (async () => {
   outDir = load("ytmp3.outDir");
   try {
     const cfg = await api("api/config");
     defaultOut = cfg.out_dir;
+    if (cfg.test_mode) {
+      // 시험 모드: 어떤 재생이든 시작되는 순간 음소거 (play 는 버블링하지 않아 캡처로 받는다)
+      $("#testmode").hidden = false;
+      const mute = (a) => { a.muted = true; a.volume = 0; };
+      document.querySelectorAll("audio").forEach(mute);
+      document.addEventListener("play", (e) => mute(e.target), true);
+      document.addEventListener("volumechange", (e) => { if (!e.target.muted) mute(e.target); }, true);
+    }
+    $("#cutsDir").textContent = cfg.cuts_dir;
     canReveal = cfg.can_reveal;
     if (!cfg.can_change_out) { outDir = null; $("#outEdit").hidden = true; }
   } catch {}
   showFolder();
-  try { if (await refresh()) poll(); } catch { render(); }
+  loadCuts();
+  try { if (await refresh()) poll(); } catch { render(); loadSongs(); }
 })();
 </script>
 </body>

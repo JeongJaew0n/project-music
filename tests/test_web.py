@@ -24,7 +24,7 @@ def server(tmp_path, monkeypatch):
         return Extracted(url, "시험 곡", path, 12.0, already_existed=False)
 
     monkeypatch.setattr(web, "extract_mp3", fake_extract)
-    srv = web.make_server("127.0.0.1", 0, tmp_path)
+    srv = web.make_server("127.0.0.1", 0, tmp_path, cuts_dir=tmp_path / "cuts")
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{srv.server_address[1]}", tmp_path
     srv.shutdown()
@@ -59,7 +59,9 @@ def test_index_and_config(server):
     base, out = server
     status, headers, raw = call(base, "/")
     assert status == 200 and "text/html" in headers["Content-Type"] and "ytmp3".encode() in raw
-    assert json.loads(call(base, "/api/config")[2]) == {"out_dir": str(out), "can_change_out": True, "can_reveal": True}
+    assert json.loads(call(base, "/api/config")[2]) == {
+        "out_dir": str(out), "cuts_dir": str(out / "cuts"), "can_change_out": True, "can_reveal": True,
+        "test_mode": False}
 
 
 def test_job_done_and_audio_ranges(server):
@@ -182,7 +184,8 @@ def test_form_post_rejected(server):
 def test_proxy_cannot_change_folder_or_reveal(server, tmp_path):
     base, out = server
     cfg = json.loads(call(base, "/api/config", headers=PROXY)[2])
-    assert cfg == {"out_dir": str(out), "can_change_out": False, "can_reveal": False}
+    assert cfg == {"out_dir": str(out), "cuts_dir": str(out / "cuts"), "can_change_out": False, "can_reveal": False,
+                   "test_mode": False}
     status, _, raw = call(base, "/api/jobs", {"url": "https://youtu.be/ok", "out_dir": "/tmp/elsewhere"}, PROXY)
     assert status == 403 and "저장 폴더" in json.loads(raw)["error"]
     job = wait(base, json.loads(call(base, "/api/jobs", {"url": "https://youtu.be/ok"}, PROXY)[2])["id"])
@@ -211,10 +214,95 @@ def test_default_out_is_studio_downloads():
     from pathlib import Path
 
     from ytmp3 import DEFAULT_OUT_DIR
-    from ytmp3.paths import DOWNLOADS_DIR, STUDIO_DIR, WORKS_DIR
+    from shared.paths import DOWNLOADS_DIR, STUDIO_DIR, WORKS_DIR
     root = Path(__file__).resolve().parent.parent
     assert STUDIO_DIR == root / "studio"
     assert DEFAULT_OUT_DIR == DOWNLOADS_DIR == STUDIO_DIR / "downloads"
     assert WORKS_DIR == STUDIO_DIR / "works"
     home = Path.home()
     assert not any(DOWNLOADS_DIR.is_relative_to(home / d) for d in ("Downloads", "Documents", "Desktop"))
+
+
+# ---- 구간 자르기 ----
+from urllib.parse import quote  # noqa: E402
+
+from .conftest import duration  # noqa: E402
+
+
+def test_songs_peaks_and_cut(server, make_song):
+    base, out = server
+    make_song(out / "내 곡.mp3")
+    (out / "메모.txt").write_text("x")
+    songs = json.loads(call(base, "/api/songs")[2])
+    assert [s["name"] for s in songs] == ["내 곡.mp3"]
+    name = quote("내 곡.mp3")
+
+    status, headers, body = call(base, f"/api/songs/{name}/audio", headers={"Range": "bytes=0-9"})
+    assert status == 206 and headers["Content-Type"] == "audio/mpeg" and len(body) == 10
+    w = json.loads(call(base, f"/api/songs/{name}/peaks?n=50")[2])
+    assert len(w["peaks"]) == 50 and abs(w["duration"] - 7.5) < 0.05
+    info = json.loads(call(base, f"/api/songs/{name}/info")[2])
+    assert len(info["silences"]) == 1
+
+    assert json.loads(call(base, "/api/cuts")[2]) == []
+    status, _, raw = call(base, "/api/cuts", {"song": "내 곡.mp3", "start": "0:01", "end": 3.5, "fade_out": 0.2})
+    assert status == 201, raw
+    c = json.loads(raw)
+    assert c["file"] == "내 곡 [0m01s-0m03.5s].mp3" and c["duration"] == 2.5
+    assert abs(duration(out / "cuts" / c["file"]) - 2.5) < 0.05
+    assert [x["name"] for x in json.loads(call(base, "/api/cuts")[2])] == [c["file"]]
+    status, headers, _ = call(base, f"/api/cuts/{quote(c['file'])}/audio?download=1")
+    assert status == 200 and headers["Content-Disposition"].startswith("attachment")
+
+
+@pytest.mark.parametrize("body,status,msg", [
+    ({"song": "내 곡.mp3", "start": 9}, 400, "곡 길이"),
+    ({"song": "내 곡.mp3", "start": "abc"}, 400, "시간이 아닙니다"),
+    ({"song": "내 곡.mp3", "fade_in": "x"}, 400, "숫자가 아닙니다"),
+    ({"song": "없는 곡.mp3"}, 404, "없는 곡"),
+    ({"song": "../내 곡.mp3"}, 404, "없는 곡"),
+    ({"song": "/etc/hosts"}, 404, "없는 곡"),
+    ({}, 404, "없는 곡"),
+])
+def test_cut_bad_requests(server, make_song, body, status, msg):
+    base, out = server
+    make_song(out / "내 곡.mp3")
+    got, _, raw = call(base, "/api/cuts", body)
+    assert got == status and msg in json.loads(raw)["error"]
+    assert not (out / "cuts").exists() or list((out / "cuts").iterdir()) == []
+
+
+def test_library_names_cannot_escape_folder(server, make_song, tmp_path):
+    base, out = server
+    make_song(out / "cuts" / "잘린.mp3")
+    # 받은 곡 폴더(out)에서 하위 폴더나 바깥으로 가는 이름은 없는 곡
+    for path in ["/api/songs/cuts%2F잘린.mp3/audio", "/api/songs/..%2Fx.mp3/audio", "/api/songs/.hidden.mp3/audio",
+                 "/api/cuts/..%2F..%2Fetc%2Fhosts/audio"]:
+        assert call(base, quote(path, safe="/%"))[0] == 404, path
+    (out / "link.mp3").symlink_to(out / "cuts" / "잘린.mp3")
+    assert call(base, "/api/songs/link.mp3/audio")[0] == 404
+    assert call(base, "/api/cuts/" + quote("잘린.mp3") + "/audio")[0] == 200
+
+
+def test_cut_post_rejects_other_origin(server, make_song):
+    base, out = server
+    make_song(out / "내 곡.mp3")
+    status, _, _ = call(base, "/api/cuts", {"song": "내 곡.mp3"}, {"Origin": "https://evil.example"})
+    assert status == 403
+    req = urllib.request.Request(base + "/api/cuts", data=b"song=x", method="POST",
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+    with pytest.raises(urllib.error.HTTPError) as e:
+        urllib.request.urlopen(req)
+    assert e.value.code == 415
+
+
+def test_test_mode_flag(tmp_path):
+    srv = web.make_server("127.0.0.1", 0, tmp_path, test_mode=True)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+    try:
+        assert json.loads(call(base, "/api/config")[2])["test_mode"] is True
+        assert "시험 모드".encode() in call(base, "/")[2]
+    finally:
+        srv.shutdown()
+        srv.server_close()
