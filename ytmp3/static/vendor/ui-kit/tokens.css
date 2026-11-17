@@ -1,4 +1,4 @@
-/* ui-kit 0.3.1 */
+/* ui-kit 0.3.2 */
 /* ui-kit tokens — tools/gen.mjs 가 kit/ui.js 의 시안으로 만든 파일. 직접 고치지 않는다.
    토큰은 모두 @layer ui-tokens 안에 있다: 쓰는 쪽의 레이어 밖 :root { --ui-… } 가 어떤 모드·시안에서도 이긴다. */
 @font-face { font-family: "Kit Sans"; src: url("fonts/KitSans-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
@@ -134,10 +134,10 @@
   --ui-danger-weak: #ffeeee;
   --ui-danger-t: #d22030;
   --ui-warning-weak: #fff3e0;
-  --ui-warning-t: #c25e00;
+  --ui-warning-t: #ad550b;
   --ui-success: #03b26c;
   --ui-success-weak: #f0faf6;
-  --ui-success-t: #028450;
+  --ui-success-t: #1a7d4f;
   --ui-knob: #ffffff;
   --ui-on-color: #ffffff;
   --ui-hairline: rgba(0,0,0,.08);
@@ -298,10 +298,10 @@
   --ui-danger-weak: #ffeeee;
   --ui-danger-t: #d22030;
   --ui-warning-weak: #fff3e0;
-  --ui-warning-t: #c25e00;
+  --ui-warning-t: #ad550b;
   --ui-success: #03b26c;
   --ui-success-weak: #f0faf6;
-  --ui-success-t: #028450;
+  --ui-success-t: #1a7d4f;
   --ui-knob: #ffffff;
   --ui-on-color: #ffffff;
   --ui-hairline: rgba(0,0,0,.08);
@@ -462,10 +462,10 @@
   --ui-danger-weak: #fdebf0;
   --ui-danger-t: #c01848;
   --ui-warning-weak: #fff3e0;
-  --ui-warning-t: #c25e00;
+  --ui-warning-t: #ad550b;
   --ui-success: #03b26c;
   --ui-success-weak: #f0faf6;
-  --ui-success-t: #028450;
+  --ui-success-t: #1a7d4f;
   --ui-knob: #ffffff;
   --ui-on-color: #ffffff;
   --ui-hairline: rgba(0,0,0,.08);
@@ -626,10 +626,10 @@
   --ui-danger-weak: #ffeeee;
   --ui-danger-t: #d22030;
   --ui-warning-weak: #fff3e0;
-  --ui-warning-t: #c25e00;
+  --ui-warning-t: #ad550b;
   --ui-success: #03b26c;
   --ui-success-weak: #f0faf6;
-  --ui-success-t: #028450;
+  --ui-success-t: #1a7d4f;
   --ui-knob: #ffffff;
   --ui-on-color: #ffffff;
   --ui-hairline: rgba(0,0,0,.08);

@@ -1,4 +1,4 @@
-/* ui-kit 0.3.1 */
+/* ui-kit 0.3.2 */
 /* ui-kit — 색 계산, 동작, 아이콘. 전역 UI(브라우저)와 UIColor(브라우저·Node)를 만든다.
    <head> 에서 defer 없이 읽으면 저장된 테마·시안·내 색이 첫 화면부터 적용된다(깜빡임 없음).
 
@@ -97,7 +97,7 @@
         t1: [0.944, 0.003], t2: [0.876, 0.006], t3: [0.776, 0.009], t4: [0.685, 0.011], t5: [0.599, 0.013], t6: [0.492, 0.012], bar: [0.205, 0.004], tile: [0.273, 0.006] },
     };
     const SEMANTIC = {
-      light: { danger: "#f04452", "danger-press": "#d22030", "danger-weak": "#ffeeee", "danger-t": "#d22030", "warning-weak": "#fff3e0", "warning-t": "#c25e00", success: "#03b26c", "success-weak": "#f0faf6", "success-t": "#028450" },
+      light: { danger: "#f04452", "danger-press": "#d22030", "danger-weak": "#ffeeee", "danger-t": "#d22030", "warning-weak": "#fff3e0", "warning-t": "#ad550b", success: "#03b26c", "success-weak": "#f0faf6", "success-t": "#1a7d4f" },
       dark: { danger: "#f7545f", "danger-press": "#e0414c", "danger-weak": "#3a1d21", "danger-t": "#ff8a92", "warning-weak": "#3a2a14", "warning-t": "#ffb35c", success: "#20c27e", "success-weak": "#143126", "success-t": "#5ad7a0" },
     };
     // 포인트 색이 빨강과 가까우면 위험 색을 라즈베리 쪽으로(주황 버튼과 지우기 버튼이 헷갈리지 않게)
@@ -159,6 +159,7 @@
           if (k in own) continue;
           let v = mix(a, b, w);
           for (let x = w; txt && x > 0.02 && contrast(txt, v) < 4.5; x -= 0.01) v = mix(a, b, x);
+          if (txt && contrast(txt, v) < 4.5) v = a;   // 글자가 기본색 위에서 겨우 4.5 이면 올림색을 기본색 그대로(대비가 먼저)
           t[k] = v;
         }
         // 포커스 테두리: 포인트 색을 카드·바탕·채움 위에서 3:1 이 될 때까지 (라이트는 어둡게, 다크는 밝게)
@@ -172,7 +173,8 @@
 
     // 지켜야 할 대비. 실패한 항목 목록을 돌려준다(시험·생성기가 씀)
     const RULES = [["on-accent", "accent", 3], ["t1", "surface", 7], ["t4", "surface", 4.5], ["t4", "bg", 4.5], ["accent-weak-t", "accent-weak", 4.5], ["danger-t", "danger-weak", 4.5], ["on-danger", "danger", 3],
-      ["focus", "surface", 3], ["focus", "bg", 3], ["focus", "fill", 3], ["on-accent", "accent-hover", 3], ["accent-weak-t", "accent-weak-hover", 4.5], ["danger-t", "danger-weak-hover", 4.5]];
+      ["focus", "surface", 3], ["focus", "bg", 3], ["focus", "fill", 3], ["on-accent", "accent-hover", 3], ["accent-weak-t", "accent-weak-hover", 4.5], ["danger-t", "danger-weak-hover", 4.5],
+      ...["danger", "warning", "success"].flatMap((k) => [`${k}-weak`, "surface", "bg"].map((bg) => [`${k}-t`, bg, 4.5]))];   // 뜻 색 글자: 배지·타일과 쓰는 쪽 글자
     const check = (t) => RULES.map(([a, b, min]) => ({ a, b, min, ratio: +contrast(t[a], t[b]).toFixed(2) })).filter((r) => r.ratio < r.min);
 
     const decl = (t, pad = "  ") => Object.entries(t).map(([k, v]) => `${pad}--ui-${k}: ${v};`).join("\n");
