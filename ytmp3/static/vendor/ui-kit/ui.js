@@ -1,4 +1,4 @@
-/* ui-kit 0.4.0 */
+/* ui-kit 0.4.1 */
 /* ui-kit — 색 계산, 동작, 아이콘. 전역 UI(브라우저)와 UIColor(브라우저·Node)를 만든다.
    <head> 에서 defer 없이 읽으면 저장된 테마·시안·내 색이 첫 화면부터 적용된다(깜빡임 없음).
 
@@ -520,7 +520,23 @@
       // types 를 아는 브라우저에는 함께 넘긴다(쓰는 쪽 CSS 의 :active-view-transition-type 용). 키트 CSS 는 data-ui-go 로 고른다
       const vt = typeof ViewTransition === "function" && "types" in ViewTransition.prototype ? doc.startViewTransition({ update: run, types: [type] }) : doc.startViewTransition(run);
       vt.ready.catch(() => {});
-      const clean = () => { if (goSeq === seq) delete root.dataset.uiGo; };
+      // 전환 중의 입력은 사라지지 않는다(GUIDE 절대 규칙 4). 전환하는 동안 브라우저는 모든 누름을 <html> 로 보낸다.
+      // 그래서 누르거나 키를 치면 전환을 바로 끝내고, <html> 로 간 그 클릭은 전환이 끝난 뒤 그 자리의 요소에 다시 준다
+      const skip = (e) => {
+        vt.skipTransition();
+        if (e.type !== "pointerdown" || e.target !== root) return;
+        const x = e.clientX, y = e.clientY;
+        const redo = (c) => {
+          removeEventListener("click", redo, true); clearTimeout(t);
+          if (c.target !== root) return;
+          c.stopImmediatePropagation(); c.preventDefault();
+          vt.finished.catch(() => {}).then(() => { const n = doc.elementFromPoint(x, y); if (n && n !== root) { n.focus?.({ preventScroll: true }); n.click(); } });
+        };
+        const t = setTimeout(() => removeEventListener("click", redo, true), 1000);
+        addEventListener("click", redo, true);
+      };
+      addEventListener("pointerdown", skip, { capture: true, passive: true }); addEventListener("keydown", skip, { capture: true });
+      const clean = () => { removeEventListener("pointerdown", skip, true); removeEventListener("keydown", skip, true); if (goSeq === seq) delete root.dataset.uiGo; };
       vt.finished.then(clean, clean);
       await vt.updateCallbackDone;
       await vt.finished.catch(() => {});
