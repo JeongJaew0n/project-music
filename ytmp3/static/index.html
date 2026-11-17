@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>ytmp3</title>
+<link rel="icon" href="data:,">
 <!-- ui-kit 사본 (ytmp3/static/vendor/ui-kit, 고치지 않는다 — 판 올리기는 node ~/my/Dev/ui-kit/tools/adopt.mjs) -->
 <link rel="stylesheet" href="static/vendor/ui-kit/tokens.css">
 <link rel="stylesheet" href="static/vendor/ui-kit/components.css">
@@ -27,7 +28,7 @@
   .job-title, .cut-title { font-size: var(--ui-fs-body-l); font-weight: 700; overflow-wrap: anywhere; }
   .job-meta { color: var(--ui-t4); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; margin-top: var(--ui-space-4); }
   .job-status { display: flex; align-items: center; gap: var(--ui-space-8); flex-wrap: wrap; color: var(--ui-t4); font-size: var(--ui-fs-sub); }
-  .err-text { color: var(--ui-danger); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; }
+  .err-text { color: var(--ui-danger-t); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; }
   audio { width: 100%; display: block; }
 
   /* 진행률을 모를 때: 막대가 오간다. 동작 줄이기에서는 멈춘 반쯤 찬 막대 */
@@ -49,7 +50,16 @@
   .len { color: var(--ui-t4); font-size: var(--ui-fs-sub); font-variant-numeric: tabular-nums; }
   .len b { color: var(--ui-t1); }
   .msg { min-height: 1.4em; font-size: var(--ui-fs-sub); color: var(--ui-t4); overflow-wrap: anywhere; }
-  .msg.err { color: var(--ui-danger); }
+  .msg.err { color: var(--ui-danger-t); }
+
+  /* 주 버튼 글자 대비 4.5 — 키트 0.3.2 의 흰 글자 × 포인트 색은 3.3~3.7 이라 바탕을 한 단계 짙게 한다.
+     누름·올림은 더 짙게(흰 글자라 짙을수록 대비가 오른다). 키트가 고치면 이 묶음을 뺀다 (tests/ui/screen.mjs 가 지킨다). */
+  .ui-btn.ui-primary { --ytm-primary: var(--ui-accent-press); --ytm-shade: var(--ui-t1); background: var(--ytm-primary); }
+  :root[data-ui-mode="dark"] .ui-btn.ui-primary { --ytm-primary: color-mix(in oklab, var(--ui-accent-press) 78%, var(--ui-bg)); --ytm-shade: var(--ui-bg); }
+  .ui-btn.ui-primary:active:not(:disabled) { background: color-mix(in oklab, var(--ytm-primary) 82%, var(--ytm-shade)); }
+  @media (hover: hover) and (pointer: fine) {
+    .ui-btn.ui-primary:hover:not(:active):not(:disabled) { background: color-mix(in oklab, var(--ytm-primary) 92%, var(--ytm-shade)); }
+  }
 </style>
 </head>
 <body class="ui-app">

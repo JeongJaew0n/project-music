@@ -1,6 +1,6 @@
 [project]
 name = "project-music"
-version = "0.5.1"
+version = "0.5.2"
 requires-python = ">=3.12"
 dependencies = [
     "yt-dlp[default]",
@@ -24,4 +24,7 @@ build-backend = "hatchling.build"
 packages = ["ytmp3", "songcut", "shared"]
 
 [tool.pytest.ini_options]
-markers = ["network: 실제 유튜브에 접속하는 시험 (YTMP3_NETWORK=1 일 때만 실행)"]
+markers = [
+    "network: 실제 유튜브에 접속하는 시험 (YTMP3_NETWORK=1 일 때만 실행)",
+    "screen: 헤드리스 Chrome 으로 화면을 재는 시험 (Chrome·node 없으면 건너뜀)",
+]

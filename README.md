@@ -72,3 +72,5 @@ studio/            (git 제외)
 uv run pytest -q                       # 단위 시험
 YTMP3_NETWORK=1 uv run pytest -q       # 실제 유튜브에서 받아 보기까지
 ```
+
+- `tests/test_screen.py` 는 헤드리스 Chrome 으로 웹 화면을 잽니다(`tests/ui/screen.mjs`, 390·768·1440 폭 × 라이트·다크 × 받기·받은 곡·편집기·잘라낸 곡): 누르는 영역 24 이상·주 동작 48 이상, 가로 넘침, 실제 칠해진 글자색의 대비 4.5(큰 글자 3), 목록 → 편집기 → 뒤로. Chrome·node 가 없으면 건너뜁니다. Chrome 은 디버깅 포트 없이 파이프로만 붙습니다.
