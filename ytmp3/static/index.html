@@ -189,9 +189,9 @@ function route() {
   if (id === "songs") { loadSongs(); requestAnimationFrame(draw); }
   if (id === "cuts") loadCuts();
 }
-// 화면 전환 (ui-kit 0.4 UI.transition): 하단바·메뉴바로 세 화면을 오가면 tab, 목록 → 편집기는 forward, 뒤로는 back.
+// 화면 전환 (ui-kit 0.4 UI.transition): 하단바·메뉴바로 세 화면을 오가면 tab. 목록 → 편집기·뒤로는 키트가 한다.
 // 키트가 동작 줄이기·--ui-motion 0·브라우저가 그린 뒤로 가기를 스스로 본다.
-let ownHashChange = false;   // 우리가 바꾼 주소(편집기 열기)는 그쪽 전환이 이미 감쌌다
+let ownHashChange = false;   // 우리가 바꾼 주소(편집기 열기)는 전환 없이 바로 — 편집기를 여는 키트 전환이 뒤따른다
 window.addEventListener("hashchange", (event) => {
   if (ownHashChange) { ownHashChange = false; return; }
   UI.transition(route, { type: "tab", event });
@@ -384,32 +384,15 @@ ld.addEventListener("ui:view", (e) => {
   if (e.detail.view === "list") stopPreview();
 });
 
-function sideBySide() { return getComputedStyle(ld.querySelector(".ui-detail-pane")).display !== "none" && getComputedStyle(ld.querySelector(".ui-list-pane")).display !== "none"; }
-
-// 목록 → 편집기 (forward). 넓은 화면은 둘이 나란히라 옮겨 갈 곳이 없어 바로 바꾼다.
-function showDetail(name) {
-  const update = () => {
-    if (location.hash !== "#songs") { ownHashChange = true; location.hash = "#songs"; route(); }
-    ld.querySelectorAll("[data-ui-detail]").forEach((r) => r.toggleAttribute("aria-current", r.dataset.uiDetail === name));
-    ld.querySelectorAll('[data-ui-detail][aria-current=""]').forEach((r) => r.setAttribute("aria-current", "true"));
-    UI.setView("detail", ld, name);
-  };
-  const moving = location.hash !== "#songs" || !sideBySide();
-  return moving ? UI.transition(update, { type: "forward" }) : update();
+// 목록 → 편집기(forward)·뒤로(back)·브라우저 뒤로 가기는 키트의 목록-상세가 스스로 전환한다(ui-kit 0.4.3).
+// 받기 카드의 "구간 자르기": 받은 곡 화면으로 먼저 바꾸고(그때의 hashchange 는 건너뜀) 키트에 편집기를 열게 한다.
+function openSong(name) {
+  if (location.hash !== "#songs") { ownHashChange = true; location.hash = "#songs"; route(); }
+  ld.querySelectorAll("[data-ui-detail]").forEach((r) => {
+    if (r.dataset.uiDetail === name) r.setAttribute("aria-current", "true"); else r.removeAttribute("aria-current");
+  });
+  UI.setView("detail", ld, name);
 }
-const openSong = showDetail;
-
-// 키트는 행·뒤로 버튼을 문서에서 받아 바로 바꾼다 — 그 전에 여기서 받아 전환으로 감싼다 (키보드 Enter 도 click 으로 온다)
-$("#songs").addEventListener("click", (e) => {
-  const row = e.target.closest("[data-ui-detail]");
-  if (!row) return;
-  e.stopPropagation();
-  showDetail(row.dataset.uiDetail);
-});
-$("#editor .back").addEventListener("click", (e) => {
-  e.stopPropagation();
-  UI.transition(() => UI.setView("list", ld), { type: "back" });
-});
 
 async function openEditor(name) {
   if (ed.name === name) return;

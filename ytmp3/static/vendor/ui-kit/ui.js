@@ -1,4 +1,4 @@
-/* ui-kit 0.4.2 */
+/* ui-kit 0.4.3 */
 /* ui-kit — 색 계산, 동작, 아이콘. 전역 UI(브라우저)와 UIColor(브라우저·Node)를 만든다.
    <head> 에서 defer 없이 읽으면 저장된 테마·시안·내 색이 첫 화면부터 적용된다(깜빡임 없음).
 
@@ -532,7 +532,11 @@
           removeEventListener("click", redo, true); clearTimeout(t);
           if (c.target !== root) return;
           c.stopImmediatePropagation(); c.preventDefault();
-          vt.finished.catch(() => {}).then(() => { const n = doc.elementFromPoint(x, y); if (n && n !== root) { n.focus?.({ preventScroll: true }); n.click(); } });
+          vt.finished.catch(() => {}).then(() => {
+            const n = doc.elementFromPoint(x, y); if (!n || n === root) return;
+            n.closest("button, a[href], input, select, textarea, summary, [tabindex]")?.focus?.({ preventScroll: true });
+            n.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, view: window }));   // 아이콘(svg) 위여도
+          });
         };
         const t = setTimeout(() => removeEventListener("click", redo, true), 1000);
         addEventListener("click", redo, true);
@@ -893,8 +897,10 @@
   let skipPop = 0;
   const histOn = (box) => box.dataset.uiHistory !== "off";
   const histKey = (box) => box.id || String([...doc.querySelectorAll(".ui-list-detail")].indexOf(box));
-  function setView(view, box = doc.querySelector(".ui-list-detail"), value, from = doc.activeElement, how) {
-    if (!box) return;
+  // 좁은 화면에서 한쪽만 보이게 바뀔 때는 화면 전환(목록→상세 forward, 상세→목록 back)으로. 나란히 보이면 그냥 바꾼다.
+  // 쓰는 쪽이 끄려면 .ui-list-detail(또는 그 위)에 data-ui-transition="off". popstate 의 event 를 받아 브라우저가 그린 뒤로 가기 위에는 또 그리지 않는다
+  function setView(view, box = doc.querySelector(".ui-list-detail"), value, from = doc.activeElement, how, event) {
+    if (!box) return Promise.resolve();
     view = view === "detail" ? "detail" : "list";
     const scr = scroller || doc.scrollingElement;
     const list = box.querySelector(":scope > .ui-list-pane"), detail = box.querySelector(":scope > .ui-detail-pane");
@@ -912,6 +918,8 @@
       }
     }
     if (view === "detail" && !wasBoth && box.dataset.uiView !== "detail") listScroll.set(box, { y: scr.scrollTop, from });
+    const animate = !wasBoth && box.dataset.uiView !== view && box.closest("[data-ui-transition]")?.dataset.uiTransition !== "off";
+    const change = () => {
     box.dataset.uiView = view;
     if (!both()) {
       if (view === "detail") {
@@ -923,18 +931,21 @@
       else { const st = listScroll.get(box); if (st) { scr.scrollTop = st.y; st.from?.focus?.({ preventScroll: true }); } }
     }
     box.dispatchEvent(new CustomEvent("ui:view", { bubbles: true, detail: { view, value } }));
+    };
+    if (!animate) { change(); return Promise.resolve(); }
+    return transition(change, { type: view === "detail" ? "forward" : "back", event });
   }
 
   addEventListener("popstate", (e) => {
     if (skipPop) { skipPop--; return; }
     doc.querySelectorAll(".ui-list-detail").forEach((box) => {
       const mine = e.state?.uiListDetail === histKey(box);
-      if (!mine && pushed.has(box)) { pushed.delete(box); if (box.dataset.uiView === "detail") setView("list", box, undefined, undefined, "pop"); }
+      if (!mine && pushed.has(box)) { pushed.delete(box); if (box.dataset.uiView === "detail") setView("list", box, undefined, undefined, "pop", e); }
       else if (mine && box.dataset.uiView !== "detail" && histOn(box)) {
         // 앞으로 가기: 같은 값으로 상세를 다시 연다
         const v = e.state.uiValue ?? undefined;
         if (v != null) box.querySelectorAll(":scope > .ui-list-pane [data-ui-detail]").forEach((x) => { if (x.dataset.uiDetail === String(v)) x.setAttribute("aria-current", "true"); else x.removeAttribute("aria-current"); });
-        pushed.add(box); setView("detail", box, v, undefined, "pop");
+        pushed.add(box); setView("detail", box, v, undefined, "pop", e);
       }
     });
   });

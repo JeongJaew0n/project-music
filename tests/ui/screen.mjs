@@ -6,7 +6,7 @@
 //   - 가로 넘침 없음
 //   - 글자 대비: 실제 칠해진 글자색을 배경 위에 합성해 4.5 이상 (큰 글자 24px·굵은 18.66px 이상은 3). 비활성은 뺀다
 //   - 흐름: (390) 목록 → 편집기 → 뒤로, 편집기 소리는 꺼져 있음
-//   - 화면 전환: tab·forward·back 이 맞게, update 한 번씩, 동작 줄이기에서는 움직임(transform 등) 없음
+//   - 화면 전환: 누름 하나에 전환 하나(tab·forward·back, 브라우저 뒤로 가기 포함), update 한 번씩, 동작 줄이기에서는 움직임 없음
 import { openChrome, sleep } from './cdp.mjs';
 
 const BASE = process.argv[2];
@@ -145,18 +145,25 @@ try {
   if (!await c.ev("document.getElementById('edAudio').paused")) fail('흐름', '목록으로 돌아왔는데 소리가 계속 난다');
   checked.flows++;
 
-  // 화면 전환 (ui-kit 0.4 UI.transition): 종류가 맞는지, update 를 한 번만 부르는지, 동작 줄이기에서 움직이지 않는지.
-  // UI.transition 을 감싸 부른 종류·update 횟수를 적고, 그동안 돌아간 애니메이션의 속성을 프레임마다 모은다.
-  // 움직임은 키프레임 사이에 값이 바뀌는 속성만 센다 — 브라우저 기본 view-transition-group(root) 은 크기·자리가 같아 값이 그대로다.
-  // ui-kit 은 UI 를 얼려 두어(Object.freeze) 나중에 감쌀 수 없다 — 문서가 생길 때 window.UI 를 받아 transition 만 감싼 대리자를 준다.
+  // 화면 전환 (ui-kit 0.4): 하단바 tab 은 이 화면이(UI.transition), 목록-상세의 forward·back(뒤로 버튼·브라우저 뒤로 가기)은 키트가 한다.
+  // 본다: 누름 하나에 전환 하나(두 군데서 감싸면 둘), 종류가 맞는지, popstate 에도 전환, 이 화면이 감싼 update 는 한 번,
+  //       동작 줄이기에서는 움직임 없음.
+  // - 전환 횟수·종류: 키트가 전환하는 동안 <html data-ui-go="종류"> 를 단다 — 달릴 때마다 적는다(누가 불렀든).
+  // - update 횟수: ui-kit 은 UI 를 얼려 두어(Object.freeze) 나중에 감쌀 수 없다 — 문서가 생길 때 window.UI 를 받아
+  //   transition 만 감싼 대리자를 준다(이 화면이 부른 것만 잡힌다. 키트 안의 전환은 키트 시험 몫).
+  // - 움직임: 키프레임 사이에 값이 바뀌는 이동 속성만 센다 — 브라우저 기본 view-transition-group(root) 은 값이 그대로다.
   const HOOK = `(() => {
-    window.__tx = []; window.__anims = []; window.__views = 0;
+    window.__tx = []; window.__go = []; window.__anims = []; window.__views = 0;
     let real = null, proxy = null;
     const wrap = (update, opts = {}) => { const rec = { type: opts.type, calls: 0 }; window.__tx.push(rec);
       return real.transition(() => { rec.calls++; return update(); }, opts); };
     Object.defineProperty(window, 'UI', { configurable: true,
       get: () => proxy,
       set: (v) => { real = v; proxy = new Proxy({}, { get: (_, k) => (k === 'transition' ? wrap : v[k]), has: (_, k) => k in v }); } });
+    // 이 스크립트가 도는 때에는 <html> 이 아직 없다 — 문서 전체를 보고 <html> 의 것만 센다
+    new MutationObserver((ms) => { for (const m of ms) { if (m.target !== document.documentElement) continue;
+        const v = m.target.dataset.uiGo; if (v && v !== m.oldValue) window.__go.push(v); } })
+      .observe(document, { attributes: true, subtree: true, attributeFilter: ['data-ui-go'], attributeOldValue: true });
     const seen = new Set();
     const sample = () => { for (const a of document.getAnimations()) { if (seen.has(a)) continue; seen.add(a);
         const frames = a.effect?.getKeyframes?.() || [], props = new Set();
@@ -168,28 +175,32 @@ try {
     addEventListener('DOMContentLoaded', () => document.getElementById('songsLD')?.addEventListener('ui:view', () => window.__views++));
   })()`;
   await c.send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
-  // n 번째 전환이 시작되고(주소 바뀜은 비동기) update 가 불리고 키트가 끝낼 때까지
-  const settle = (n) => until(`window.__tx.length >= ${n} && window.__tx.every((t) => t.calls > 0) && !document.documentElement.dataset.uiGo`, 3000).then(() => sleep(150));
+  // n 번째 전환이 시작되고(주소 바뀜·popstate 는 비동기) 키트가 끝낼 때까지. 끝난 뒤 더 오는 전환이 있으면 다음 판정이 잡는다
+  const settle = (n) => until(`window.__go.length >= ${n} && window.__tx.every((t) => t.calls > 0) && !document.documentElement.dataset.uiGo`, 3000).then(() => sleep(250));
   const MOVES = ['transform', 'translate', 'scale', 'rotate'];
+  const view = "document.getElementById('songsLD').dataset.uiView";
   for (const reduce of [false, true]) {
     const tag = `전환${reduce ? '(동작 줄이기)' : ''}`;
     await c.view(390, 844, true, false);
     await c.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' },
       { name: 'prefers-reduced-motion', value: reduce ? 'reduce' : 'no-preference' }] });
     await open('get');
-    await c.tap('.ui-tabbar [data-ui-nav-id="songs"]'); await settle(1);
+    const steps = [];
+    const step = async (name, act, n, ok) => { await act(); await settle(n); steps.push([name, await c.ev(ok)]); };
+    await step('하단바 → 받은 곡', () => c.tap('.ui-tabbar [data-ui-nav-id="songs"]'), 1, "!document.getElementById('view-songs').hidden");
     await until("document.querySelectorAll('#songs [data-ui-detail]').length > 0");
-    await c.tap('#songs [data-ui-detail]'); await settle(2);
-    const opened = await c.ev("document.getElementById('songsLD').dataset.uiView === 'detail'");
-    await c.tap('#editor .back'); await settle(3);
-    const closed = await c.ev("document.getElementById('songsLD').dataset.uiView !== 'detail'");
-    await c.tap('.ui-tabbar [data-ui-nav-id="get"]'); await settle(4);
-    const r = await c.ev("({ tx: window.__tx, anims: window.__anims, views: window.__views, get: !document.getElementById('view-get').hidden })");
-    const types = r.tx.map((t) => t.type).join(',');
-    if (types !== 'tab,forward,back,tab') fail(tag, `전환 종류 ${types} (기대 tab,forward,back,tab)`);
+    await step('행 → 편집기', () => c.tap('#songs [data-ui-detail]'), 2, `${view} === 'detail'`);
+    await step('뒤로 버튼', () => c.tap('#editor .back'), 3, `${view} !== 'detail'`);
+    await step('행 → 편집기 (다시)', () => c.tap('#songs [data-ui-detail]'), 4, `${view} === 'detail'`);
+    await step('브라우저 뒤로 가기', () => c.ev('history.back()'), 5, `${view} !== 'detail'`);
+    await step('하단바 → 받기', () => c.tap('.ui-tabbar [data-ui-nav-id="get"]'), 6, "!document.getElementById('view-get').hidden");
+    const r = await c.ev("({ tx: window.__tx, go: window.__go, anims: window.__anims, views: window.__views })");
+    for (const [name, ok] of steps) if (!ok) fail(tag, `${name} 뒤 화면이 맞지 않는다`);
+    const want = reduce ? 'fade,fade,fade,fade,fade,fade' : 'tab,forward,back,forward,back,tab';   // 동작 줄이기면 키트가 모두 페이드로
+    if (r.go.join(',') !== want) fail(tag, `전환 ${r.go.join(',') || '없음'} (기대 ${want} — 누름 하나에 하나, popstate 포함)`);
+    if (r.tx.map((t) => t.type).join(',') !== 'tab,tab') fail(tag, `이 화면이 부른 전환 ${r.tx.map((t) => t.type).join(',')} (기대 tab,tab — 목록-상세는 키트 몫)`);
     for (const t of r.tx) if (t.calls !== 1) fail(tag, `${t.type} 전환이 update 를 ${t.calls}번 불렀다`);
-    if (r.views !== 2) fail(tag, `목록-상세가 ${r.views}번 바뀌었다 (기대 2 — 하나의 누름에 한 번씩)`);
-    if (!opened || !closed || !r.get) fail(tag, '전환 뒤 화면이 맞지 않는다');
+    if (r.views !== 4) fail(tag, `목록-상세가 ${r.views}번 바뀌었다 (기대 4)`);
     const moved = r.anims.filter((a) => a.props.some((p) => MOVES.includes(p)));
     const show = (list) => list.map((a) => `${a.name}@${a.on}[${a.props.join('+')}]`).join(', ');
     if (reduce && moved.length) fail(tag, `동작 줄이기인데 움직였다: ${show(moved)}`);

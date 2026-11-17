@@ -1,4 +1,4 @@
-/* ui-kit 0.4.2 */
+/* ui-kit 0.4.3 */
 // ui-kit 전역 타입 — ui.js 가 window 에 만드는 UI 와 UIColor.
 // 쓰는 쪽(TypeScript·Vite)에서: tsconfig 의 "include" 에 이 파일을 넣거나, 아무 .ts 파일 맨 위에
 //   /// <reference path="../vendor/ui-kit/ui.d.ts" />
@@ -101,8 +101,9 @@ declare global {
     dialog(options?: UIDialogOptions): Promise<boolean>;
     /** 맨 위 다이얼로그나 시트를 닫는다 */
     closeTop(): void;
-    /** 목록-상세(.ui-list-detail) 전환. root 가 없으면 문서의 첫 것. 좁은 화면에서 상세로 가면 방문 기록 한 칸(data-ui-history="off" 로 끔) */
-    setView(view: "list" | "detail", root?: Element, value?: string): void;
+    /** 목록-상세(.ui-list-detail) 전환. root 가 없으면 문서의 첫 것. 좁은 화면에서 상세로 가면 방문 기록 한 칸(data-ui-history="off" 로 끔),
+     *  화면 전환 forward·back(data-ui-transition="off" 로 끔). 바뀌기를 마치면 풀린다 */
+    setView(view: "list" | "detail", root?: Element, value?: string): Promise<void>;
 
     /** 화면 전환: update 를 한 번 부르고 그 종류대로 바뀐다. update 가 던지면 거절. event.hasUAVisualTransition 이면 움직이지 않음 */
     transition(update: () => unknown, options?: { type?: UITransitionType; event?: { hasUAVisualTransition?: boolean } }): Promise<void>;
