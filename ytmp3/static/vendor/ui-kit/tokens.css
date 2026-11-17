@@ -1,4 +1,4 @@
-/* ui-kit 0.3.4 */
+/* ui-kit 0.4.0 */
 /* ui-kit tokens — tools/gen.mjs 가 kit/ui.js 의 시안으로 만든 파일. 직접 고치지 않는다.
    토큰은 모두 @layer ui-tokens 안에 있다: 쓰는 쪽의 레이어 밖 :root { --ui-… } 가 어떤 모드·시안에서도 이긴다. */
 @font-face { font-family: "Kit Sans"; src: url("fonts/KitSans-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
@@ -98,10 +98,30 @@
   --ui-dur-sheet: calc(0.32s * var(--ui-motion));
   --ui-dur-slow: calc(0.6s * var(--ui-motion));
   --ui-dur-exit: calc(0.22s * var(--ui-motion));
+  --ui-delay-screen-fade: calc(0.05s * var(--ui-motion));
+  --ui-dur-screen-fade: calc(0.09s * var(--ui-motion));
+  --ui-dur-tab-out: calc(0.09s * var(--ui-motion));
+  --ui-dur-tab-in: calc(0.21s * var(--ui-motion));
+  --ui-shift-screen: min(20%, 96px);
+  --ui-shift-stagger: 8px;
+  --ui-dur-spin: 0.7s;
+  --ui-dur-shimmer: 1.4s;
   --ui-ease-fade: ease;
-  --ui-ease-move: cubic-bezier(.3,.7,.3,1);
-  --ui-ease-sheet: cubic-bezier(.2,.8,.2,1);
-  --ui-ease-exit: cubic-bezier(.3,0,.8,.15);
+  --ui-ease-move: cubic-bezier(0.3,0.7,0.3,1);
+  --ui-ease-sheet: cubic-bezier(0.2,0.8,0.2,1);
+  --ui-ease-exit: cubic-bezier(0.3,0,0.8,0.15);
+  --ui-ease-enter: cubic-bezier(0.05,0.7,0.1,1);
+  --ui-ease-press: cubic-bezier(0,0,0.2,1);
+  --ui-ease-snappy: cubic-bezier(0.3,0.7,0.3,1);
+  --ui-dur-snappy: calc(0.174s * var(--ui-motion));
+  --ui-ease-smooth: cubic-bezier(0.2,0.8,0.2,1);
+  --ui-dur-smooth: calc(0.376s * var(--ui-motion));
+  --ui-ease-pop: cubic-bezier(0.3,1.35,0.5,1);
+  --ui-dur-pop: calc(0.438s * var(--ui-motion));
+  --ui-stagger: calc(20ms * var(--ui-motion));
+  --ui-pop-in-from: 1;
+  --ui-dur-pop-in: calc(0.22s * var(--ui-motion));
+  --ui-ease-pop-in: cubic-bezier(0.2,0,0,1);
   --ui-press: .96;
   --ui-press-sm: .92;
 }
@@ -785,5 +805,38 @@
   --ui-focus: #f5f5f5;
   color-scheme: dark; }
 
-@media (prefers-reduced-motion: reduce) { :root { --ui-press: 1; --ui-press-sm: 1; } }
+[data-ui-feel="standard"] {
+  --ui-pop-in-from: 0.8;
+  --ui-ease-pop-in: cubic-bezier(0.34,1.3,0.64,1);
+}
+[data-ui-feel="playful"] {
+  --ui-ease-snappy: cubic-bezier(0.3,1.4,0.5,1);
+  --ui-dur-snappy: calc(0.371s * var(--ui-motion));
+  --ui-ease-smooth: cubic-bezier(0.25,1.2,0.4,1);
+  --ui-dur-smooth: calc(0.591s * var(--ui-motion));
+  --ui-ease-pop: cubic-bezier(0.3,1.6,0.5,1);
+  --ui-dur-pop: calc(0.709s * var(--ui-motion));
+  --ui-stagger: calc(30ms * var(--ui-motion));
+  --ui-pop-in-from: 0.8;
+  --ui-dur-pop-in: calc(0.28s * var(--ui-motion));
+  --ui-ease-pop-in: cubic-bezier(0.34,1.56,0.64,1);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+:root {
+  --ui-ease-snappy: linear(0, 0.0436, 0.1438, 0.2676, 0.3947, 0.5136, 0.6183, 0.707, 0.7796, 0.8376, 0.8827, 0.9172, 0.9429, 0.9618, 0.9754, 0.9849, 0.9913, 0.9956, 0.9984, 1, 1);
+  --ui-ease-smooth: linear(0, 0.0183, 0.0649, 0.1295, 0.2043, 0.2837, 0.3634, 0.4407, 0.5136, 0.5809, 0.6421, 0.6969, 0.7453, 0.7877, 0.8244, 0.8559, 0.8828, 0.9054, 0.9244, 0.9402, 0.9532, 0.9638, 0.9724, 0.9793, 0.9849, 0.9892, 0.9926, 0.9952, 0.9972, 0.9986, 0.9997, 1.0005, 1);
+  --ui-ease-pop: linear(0, 0.0273, 0.0969, 0.1927, 0.3022, 0.4156, 0.5259, 0.6284, 0.72, 0.7992, 0.8656, 0.9195, 0.9617, 0.9935, 1.0163, 1.0316, 1.0408, 1.0451, 1.0459, 1.0441, 1.0405, 1.0359, 1.0308, 1.0255, 1.0206, 1.016, 1.0119, 1.0084, 1.0055, 1.0032, 1.0013, 1, 0.999, 0.9984, 0.9981, 0.9979, 0.9979, 1);
+}
+[data-ui-feel="playful"] {
+  --ui-ease-snappy: linear(0, 0.0499, 0.1718, 0.3303, 0.4985, 0.6573, 0.795, 0.9059, 0.9886, 1.0447, 1.0779, 1.0927, 1.0939, 1.086, 1.0726, 1.057, 1.0412, 1.0269, 1.0148, 1.0054, 0.9986, 0.9942, 0.9919, 0.991, 0.9913, 0.9923, 0.9937, 0.9952, 0.9967, 0.9979, 0.999, 1);
+  --ui-ease-smooth: linear(0, 0.0128, 0.0468, 0.0961, 0.156, 0.2225, 0.2924, 0.3632, 0.433, 0.5003, 0.5641, 0.6235, 0.6782, 0.7279, 0.7727, 0.8125, 0.8475, 0.878, 0.9044, 0.9269, 0.9459, 0.9618, 0.9749, 0.9855, 0.994, 1.0006, 1.0057, 1.0094, 1.0121, 1.0138, 1.0148, 1.0151, 1.0151, 1.0146, 1.014, 1.0131, 1.0121, 1.0111, 1.01, 1.0089, 1.0079, 1.0069, 1.006, 1.0051, 1.0043, 1.0036, 1.003, 1.0025, 1.002, 1.0016, 1);
+  --ui-ease-pop: linear(0, 0.0209, 0.0774, 0.1603, 0.2613, 0.3729, 0.4884, 0.6026, 0.7109, 0.8103, 0.8983, 0.9736, 1.0355, 1.0842, 1.1202, 1.1445, 1.1582, 1.163, 1.1603, 1.1516, 1.1384, 1.1222, 1.1041, 1.0853, 1.0666, 1.0488, 1.0325, 1.0179, 1.0054, 0.9951, 0.987, 0.9809, 0.9768, 0.9744, 0.9734, 0.9738, 0.9751, 0.9772, 0.9798, 0.9827, 0.9858, 0.9888, 0.9918, 0.9944, 0.9969, 0.9989, 1.0006, 1.002, 1.003, 1.0037, 1.0042, 1.0043, 1.0043, 1.0041, 1.0038, 1.0033, 1.0029, 1.0024, 1.0019, 1.0014, 1);
+}
+}
+@media (prefers-reduced-motion: reduce) { :root, [data-ui-feel] {
+  --ui-press: 1; --ui-press-sm: 1; --ui-stagger: 0ms; --ui-shift-screen: 0px; --ui-shift-stagger: 0px; --ui-pop-in-from: 1;
+  --ui-ease-snappy: var(--ui-ease-fade); --ui-dur-snappy: var(--ui-dur-fade);
+  --ui-ease-smooth: var(--ui-ease-fade); --ui-dur-smooth: var(--ui-dur-fade);
+  --ui-ease-pop: var(--ui-ease-fade); --ui-dur-pop: var(--ui-dur-fade);
+} }
 }

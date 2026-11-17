@@ -62,6 +62,6 @@ def test_screen_sizes_contrast_targets_and_flow(screen_server):
     assert r.returncode == 0, r.stderr
     result = json.loads(r.stdout.strip().splitlines()[-1])
     checked = result["checked"]
-    assert checked["pages"] == 3 * 2 * 4 and checked["flows"] == 1, checked
+    assert checked["pages"] == 3 * 2 * 4 and checked["flows"] == 3, checked
     assert checked["targets"] > 100 and checked["texts"] > 200, checked
     assert result["failures"] == [], "\n".join(result["failures"])

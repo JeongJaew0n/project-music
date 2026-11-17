@@ -325,7 +325,7 @@ def test_page_loads_ui_kit_copy(server):
     assert '<script src="static/vendor/ui-kit/ui.js"></script>' in page  # defer 없이 (첫 화면 테마 깜빡임 방지)
     for ref in refs:
         status, headers, body = call(base, "/" + ref)
-        assert status == 200 and body.startswith(b"/* ui-kit 0.3."), ref
+        assert status == 200 and re.match(rb"/\* ui-kit 0\.\d+\.\d+ \*/", body), ref
     status, headers, body = call(base, "/static/vendor/ui-kit/fonts/KitSans-Variable.woff2")
     assert status == 200 and headers["Content-Type"] == "font/woff2" and body[:4] == b"wOF2"
     assert call(base, "/static/vendor/ui-kit/ui.js")[1]["Content-Type"].startswith("text/javascript")

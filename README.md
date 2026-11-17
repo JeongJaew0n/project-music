@@ -62,8 +62,8 @@ studio/            (git 제외)
 
 ## 화면 부품 (ui-kit)
 
-웹 화면은 공용 화면 부품 [ui-kit](../ui-kit) 0.3 사본(`ytmp3/static/vendor/ui-kit/`)을 씁니다. 사본은 고치지 않고,
-판을 올릴 때는 `node ~/my/Dev/ui-kit/tools/adopt.mjs ~/my/Dev/project-music --to ytmp3/static/vendor/ui-kit`.
+웹 화면은 공용 화면 부품 [ui-kit](../ui-kit) 0.4 사본(`ytmp3/static/vendor/ui-kit/`)을 씁니다. 사본은 고치지 않고,
+판을 올릴 때는 `node ~/my/Dev/ui-kit/tools/adopt.mjs ~/my/Dev/project-music --from 0.4 --to ytmp3/static/vendor/ui-kit`.
 화면은 받기 · 받은 곡(구간 자르기) · 잘라낸 곡 셋으로 나뉘고, 폰은 하단바, 넓은 화면은 메뉴바로 옮겨 다닙니다.
 
 ## 시험
@@ -73,4 +73,4 @@ uv run pytest -q                       # 단위 시험
 YTMP3_NETWORK=1 uv run pytest -q       # 실제 유튜브에서 받아 보기까지
 ```
 
-- `tests/test_screen.py` 는 헤드리스 Chrome 으로 웹 화면을 잽니다(`tests/ui/screen.mjs`, 390·768·1440 폭 × 라이트·다크 × 받기·받은 곡·편집기·잘라낸 곡): 누르는 영역 24 이상·주 동작 48 이상, 가로 넘침, 실제 칠해진 글자색의 대비 4.5(큰 글자 3), 목록 → 편집기 → 뒤로. Chrome·node 가 없으면 건너뜁니다. Chrome 은 디버깅 포트 없이 파이프로만 붙습니다.
+- `tests/test_screen.py` 는 헤드리스 Chrome 으로 웹 화면을 잽니다(`tests/ui/screen.mjs`, 390·768·1440 폭 × 라이트·다크 × 받기·받은 곡·편집기·잘라낸 곡): 누르는 영역 24 이상·주 동작 48 이상, 가로 넘침, 실제 칠해진 글자색의 대비 4.5(큰 글자 3), 목록 → 편집기 → 뒤로, 화면 전환(tab·forward·back 이 update 를 한 번씩, 동작 줄이기에서 움직임 없음). Chrome·node 가 없으면 건너뜁니다. Chrome 은 디버깅 포트 없이 파이프로만 붙습니다.

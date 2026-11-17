@@ -6,6 +6,7 @@
 //   - 가로 넘침 없음
 //   - 글자 대비: 실제 칠해진 글자색을 배경 위에 합성해 4.5 이상 (큰 글자 24px·굵은 18.66px 이상은 3). 비활성은 뺀다
 //   - 흐름: (390) 목록 → 편집기 → 뒤로, 편집기 소리는 꺼져 있음
+//   - 화면 전환: tab·forward·back 이 맞게, update 한 번씩, 동작 줄이기에서는 움직임(transform 등) 없음
 import { openChrome, sleep } from './cdp.mjs';
 
 const BASE = process.argv[2];
@@ -143,6 +144,59 @@ try {
   if (!await until(`${ld}.dataset.uiView !== 'detail' && getComputedStyle(document.querySelector('.ui-list-pane')).display !== 'none'`)) fail('흐름', '뒤로를 눌러도 목록으로 돌아오지 않는다');
   if (!await c.ev("document.getElementById('edAudio').paused")) fail('흐름', '목록으로 돌아왔는데 소리가 계속 난다');
   checked.flows++;
+
+  // 화면 전환 (ui-kit 0.4 UI.transition): 종류가 맞는지, update 를 한 번만 부르는지, 동작 줄이기에서 움직이지 않는지.
+  // UI.transition 을 감싸 부른 종류·update 횟수를 적고, 그동안 돌아간 애니메이션의 속성을 프레임마다 모은다.
+  // 움직임은 키프레임 사이에 값이 바뀌는 속성만 센다 — 브라우저 기본 view-transition-group(root) 은 크기·자리가 같아 값이 그대로다.
+  // ui-kit 은 UI 를 얼려 두어(Object.freeze) 나중에 감쌀 수 없다 — 문서가 생길 때 window.UI 를 받아 transition 만 감싼 대리자를 준다.
+  const HOOK = `(() => {
+    window.__tx = []; window.__anims = []; window.__views = 0;
+    let real = null, proxy = null;
+    const wrap = (update, opts = {}) => { const rec = { type: opts.type, calls: 0 }; window.__tx.push(rec);
+      return real.transition(() => { rec.calls++; return update(); }, opts); };
+    Object.defineProperty(window, 'UI', { configurable: true,
+      get: () => proxy,
+      set: (v) => { real = v; proxy = new Proxy({}, { get: (_, k) => (k === 'transition' ? wrap : v[k]), has: (_, k) => k in v }); } });
+    const seen = new Set();
+    const sample = () => { for (const a of document.getAnimations()) { if (seen.has(a)) continue; seen.add(a);
+        const frames = a.effect?.getKeyframes?.() || [], props = new Set();
+        for (const k of frames) for (const p of Object.keys(k))
+          if (!['offset', 'computedOffset', 'easing', 'composite'].includes(p) && new Set(frames.map((f) => String(f[p] ?? ''))).size > 1) props.add(p);
+        window.__anims.push({ name: a.animationName || a.id || '', on: (a.effect?.target?.id || a.effect?.target?.className || a.effect?.target?.tagName || '') + (a.effect?.pseudoElement || ''), props: [...props] }); }
+      requestAnimationFrame(sample); };
+    requestAnimationFrame(sample);
+    addEventListener('DOMContentLoaded', () => document.getElementById('songsLD')?.addEventListener('ui:view', () => window.__views++));
+  })()`;
+  await c.send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
+  // n 번째 전환이 시작되고(주소 바뀜은 비동기) update 가 불리고 키트가 끝낼 때까지
+  const settle = (n) => until(`window.__tx.length >= ${n} && window.__tx.every((t) => t.calls > 0) && !document.documentElement.dataset.uiGo`, 3000).then(() => sleep(150));
+  const MOVES = ['transform', 'translate', 'scale', 'rotate'];
+  for (const reduce of [false, true]) {
+    const tag = `전환${reduce ? '(동작 줄이기)' : ''}`;
+    await c.view(390, 844, true, false);
+    await c.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' },
+      { name: 'prefers-reduced-motion', value: reduce ? 'reduce' : 'no-preference' }] });
+    await open('get');
+    await c.tap('.ui-tabbar [data-ui-nav-id="songs"]'); await settle(1);
+    await until("document.querySelectorAll('#songs [data-ui-detail]').length > 0");
+    await c.tap('#songs [data-ui-detail]'); await settle(2);
+    const opened = await c.ev("document.getElementById('songsLD').dataset.uiView === 'detail'");
+    await c.tap('#editor .back'); await settle(3);
+    const closed = await c.ev("document.getElementById('songsLD').dataset.uiView !== 'detail'");
+    await c.tap('.ui-tabbar [data-ui-nav-id="get"]'); await settle(4);
+    const r = await c.ev("({ tx: window.__tx, anims: window.__anims, views: window.__views, get: !document.getElementById('view-get').hidden })");
+    const types = r.tx.map((t) => t.type).join(',');
+    if (types !== 'tab,forward,back,tab') fail(tag, `전환 종류 ${types} (기대 tab,forward,back,tab)`);
+    for (const t of r.tx) if (t.calls !== 1) fail(tag, `${t.type} 전환이 update 를 ${t.calls}번 불렀다`);
+    if (r.views !== 2) fail(tag, `목록-상세가 ${r.views}번 바뀌었다 (기대 2 — 하나의 누름에 한 번씩)`);
+    if (!opened || !closed || !r.get) fail(tag, '전환 뒤 화면이 맞지 않는다');
+    const moved = r.anims.filter((a) => a.props.some((p) => MOVES.includes(p)));
+    const show = (list) => list.map((a) => `${a.name}@${a.on}[${a.props.join('+')}]`).join(', ');
+    if (reduce && moved.length) fail(tag, `동작 줄이기인데 움직였다: ${show(moved)}`);
+    if (!reduce && !moved.some((a) => a.on.includes('view-transition'))) fail(tag, `화면 전환의 움직임을 못 잡았다 — 잴 수단이 고장 (잡은 것: ${show(r.anims) || '없음'})`);
+    checked.flows++;
+  }
+  await c.send('Emulation.setEmulatedMedia', { features: [] });
 
   for (const e of c.errors) fail('콘솔', e);
 } catch (e) {

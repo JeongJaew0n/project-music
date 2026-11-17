@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-ui-store="ytmp3">
+<html lang="ko" data-ui-store="ytmp3" data-ui-feel="calm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -189,7 +189,13 @@ function route() {
   if (id === "songs") { loadSongs(); requestAnimationFrame(draw); }
   if (id === "cuts") loadCuts();
 }
-window.addEventListener("hashchange", route);
+// 화면 전환 (ui-kit 0.4 UI.transition): 하단바·메뉴바로 세 화면을 오가면 tab, 목록 → 편집기는 forward, 뒤로는 back.
+// 키트가 동작 줄이기·--ui-motion 0·브라우저가 그린 뒤로 가기를 스스로 본다.
+let ownHashChange = false;   // 우리가 바꾼 주소(편집기 열기)는 그쪽 전환이 이미 감쌌다
+window.addEventListener("hashchange", (event) => {
+  if (ownHashChange) { ownHashChange = false; return; }
+  UI.transition(route, { type: "tab", event });
+});
 
 /* ---------- 받기 ---------- */
 function showFolder() { $("#outText").textContent = outDir || defaultOut; }
@@ -378,10 +384,32 @@ ld.addEventListener("ui:view", (e) => {
   if (e.detail.view === "list") stopPreview();
 });
 
-function openSong(name) {
-  if (location.hash !== "#songs") location.hash = "#songs";
-  UI.setView("detail", ld, name);
+function sideBySide() { return getComputedStyle(ld.querySelector(".ui-detail-pane")).display !== "none" && getComputedStyle(ld.querySelector(".ui-list-pane")).display !== "none"; }
+
+// 목록 → 편집기 (forward). 넓은 화면은 둘이 나란히라 옮겨 갈 곳이 없어 바로 바꾼다.
+function showDetail(name) {
+  const update = () => {
+    if (location.hash !== "#songs") { ownHashChange = true; location.hash = "#songs"; route(); }
+    ld.querySelectorAll("[data-ui-detail]").forEach((r) => r.toggleAttribute("aria-current", r.dataset.uiDetail === name));
+    ld.querySelectorAll('[data-ui-detail][aria-current=""]').forEach((r) => r.setAttribute("aria-current", "true"));
+    UI.setView("detail", ld, name);
+  };
+  const moving = location.hash !== "#songs" || !sideBySide();
+  return moving ? UI.transition(update, { type: "forward" }) : update();
 }
+const openSong = showDetail;
+
+// 키트는 행·뒤로 버튼을 문서에서 받아 바로 바꾼다 — 그 전에 여기서 받아 전환으로 감싼다 (키보드 Enter 도 click 으로 온다)
+$("#songs").addEventListener("click", (e) => {
+  const row = e.target.closest("[data-ui-detail]");
+  if (!row) return;
+  e.stopPropagation();
+  showDetail(row.dataset.uiDetail);
+});
+$("#editor .back").addEventListener("click", (e) => {
+  e.stopPropagation();
+  UI.transition(() => UI.setView("list", ld), { type: "back" });
+});
 
 async function openEditor(name) {
   if (ed.name === name) return;
