@@ -1,4 +1,4 @@
-/* ui-kit 0.4.1 */
+/* ui-kit 0.4.2 */
 // ui-kit 전역 타입 — ui.js 가 window 에 만드는 UI 와 UIColor.
 // 쓰는 쪽(TypeScript·Vite)에서: tsconfig 의 "include" 에 이 파일을 넣거나, 아무 .ts 파일 맨 위에
 //   /// <reference path="../vendor/ui-kit/ui.d.ts" />

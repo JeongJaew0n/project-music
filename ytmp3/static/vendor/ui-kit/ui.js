@@ -1,4 +1,4 @@
-/* ui-kit 0.4.1 */
+/* ui-kit 0.4.2 */
 /* ui-kit — 색 계산, 동작, 아이콘. 전역 UI(브라우저)와 UIColor(브라우저·Node)를 만든다.
    <head> 에서 defer 없이 읽으면 저장된 테마·시안·내 색이 첫 화면부터 적용된다(깜빡임 없음).
 
@@ -196,7 +196,7 @@
     // 시간(ms). 0.3 값 그대로 + 0.4 새 값. screen·screenOut 은 조사로 바뀔 수 있다(이 한 곳만)
     // 화면 전환(모바일 조사 1차, 2026-11-18): 앞·뒤·위·아래는 위치를 smooth 스프링으로, 새 화면 투명도는 screenFadeDelay 뒤 screenFade 동안(linear).
     // 탭은 바꿔 보이기(fade through): 옛 화면 tabOut 동안 사라지고, 그 뒤 새 화면 tabIn 동안 나타남. 크기 변화는 없다(자주 하는 동작)
-    const dur = { press: 100, fade: 150, move: 220, sheet: 320, slow: 600, exit: 220, screenFadeDelay: 50, screenFade: 90, tabOut: 90, tabIn: 210, spin: 700, shimmer: 1400 };
+    const dur = { press: 100, fade: 150, move: 220, sheet: 320, slow: 600, exit: 220, screenFadeDelay: 50, screenFade: 90, tabOut: 90, tabIn: 210, spin: 700, shimmer: 1400, check: 220 };   // check: 체크 표시를 선 길이로 그리는 시간
     // cubic-bezier 네 수(fade 는 CSS 의 ease 와 같다)
     const ease = { fade: [0.25, 0.1, 0.25, 1], move: [0.3, 0.7, 0.3, 1], sheet: [0.2, 0.8, 0.2, 1], exit: [0.3, 0, 0.8, 0.15], enter: [0.05, 0.7, 0.1, 1], press: [0, 0, 0.2, 1] };
     // 손맛 세 단계(기본 calm). calm·standard 의 스프링은 M3 standard 성질, playful 은 M3 expressive 성질. 차이는 놀이 효과(recipes.fx):
@@ -204,9 +204,10 @@
     // 엇갈림 간격: M2·Carbon "20ms 넘게 벌리지 않는다"(생기만 30), popIn = 배지·칩이 넘쳐 들어오기
     const standardSprings = { snappy: { duration: 0.168, bounce: 0.1, fallback: [0.3, 0.7, 0.3, 1] }, smooth: { duration: 0.363, bounce: 0.1, fallback: [0.2, 0.8, 0.2, 1] }, pop: { duration: 0.3, bounce: 0.3, fallback: [0.3, 1.35, 0.5, 1] } };
     const feels = {
-      calm: { ...standardSprings, stagger: 20, popIn: { from: 1, ms: 220, ease: [0.2, 0, 0, 1] } },
-      standard: { ...standardSprings, stagger: 20, popIn: { from: 0.8, ms: 220, ease: [0.34, 1.3, 0.64, 1] } },
-      playful: { snappy: { duration: 0.222, bounce: 0.4, fallback: [0.3, 1.4, 0.5, 1] }, smooth: { duration: 0.444, bounce: 0.2, fallback: [0.25, 1.2, 0.4, 1] }, pop: { duration: 0.35, bounce: 0.5, fallback: [0.3, 1.6, 0.5, 1] }, stagger: 30, popIn: { from: 0.8, ms: 280, ease: [0.34, 1.56, 0.64, 1] } },
+      // checkPop: 체크를 다 그린 뒤 한 번 튀는 크기·시간(calm 은 그리기만)
+      calm: { ...standardSprings, stagger: 20, popIn: { from: 1, ms: 220, ease: [0.2, 0, 0, 1] }, checkPop: { scale: 1, ms: 0 } },
+      standard: { ...standardSprings, stagger: 20, popIn: { from: 0.8, ms: 220, ease: [0.34, 1.3, 0.64, 1] }, checkPop: { scale: 1.06, ms: 260 } },
+      playful: { snappy: { duration: 0.222, bounce: 0.4, fallback: [0.3, 1.4, 0.5, 1] }, smooth: { duration: 0.444, bounce: 0.2, fallback: [0.25, 1.2, 0.4, 1] }, pop: { duration: 0.35, bounce: 0.5, fallback: [0.3, 1.6, 0.5, 1] }, stagger: 30, popIn: { from: 0.8, ms: 280, ease: [0.34, 1.56, 0.64, 1] }, checkPop: { scale: 1.12, ms: 320 } },
     };
     // 화면 전환 밀림: 화면 폭의 20%, 넓은 화면에서 너무 크지 않게 최대 96px. 엇갈림 떠오름 8px
     const shift = { screen: 0.2, screenMax: 96, stagger: 8, staggerMax: 6 };
@@ -280,6 +281,7 @@
       const f = feels[feel], out = {};
       if (!f) throw new Error(`UIMotion: 손맛 ${feel}`);
       for (const r of ["snappy", "smooth", "pop"]) { const L = linear(f[r]); out[`ease-${r}`] = L.easing; out[`dur-${r}`] = L.duration; out[`ease-${r}-fallback`] = bez(f[r].fallback); }
+      out["check-pop"] = f.checkPop.scale; out["dur-check-pop"] = f.checkPop.ms / 1000;
       out.stagger = f.stagger; out["pop-in-from"] = f.popIn.from; out["dur-pop-in"] = f.popIn.ms / 1000; out["ease-pop-in"] = bez(f.popIn.ease);
       return out;
     }

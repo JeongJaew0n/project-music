@@ -1,4 +1,4 @@
-/* ui-kit 0.4.1 */
+/* ui-kit 0.4.2 */
 /* ui-kit components — tokens.css 다음에 읽는다.
    - 모든 클래스는 ui- 로 시작한다(부분·꾸밈 포함): <button class="ui-btn ui-primary ui-l">
    - 글자 크기·치수·모서리·시간은 모두 --ui- 토큰을 쓴다. 쓰는 쪽은 :root 에서 토큰을 바꾼다(tokens.css 참고).
@@ -226,7 +226,16 @@ textarea.ui-input { height: auto; min-height: calc(var(--ui-input-h) * 2); paddi
 .ui-check { appearance: none; -webkit-appearance: none; width: var(--ui-check); height: var(--ui-check); border-radius: 50%; background: var(--ui-control); display: grid; place-items: center; margin: 0; cursor: pointer; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); flex: none; }
 .ui-check::after { content: ""; width: 42%; height: 25%; border-left: 2.5px solid var(--ui-knob); border-bottom: 2.5px solid var(--ui-knob); transform: translateY(-1px) rotate(-45deg); }
 .ui-check:checked { background: var(--ui-accent); }
-.ui-check:checked::after { border-color: var(--ui-on-accent); }
+.ui-check:checked::after { border-color: var(--ui-on-accent); animation: ui-check-draw var(--ui-dur-check) ease-out backwards; }
+/* 켤 때 체크 표시를 선 길이로 그린다: 짧은 획(위→아래) 다음 긴 획(왼쪽→오른쪽). 다 그린 뒤 standard·playful 은 한 번 튄다(calm 은 0s).
+   backwards: 끝나면 잘라 낸 것을 풀어 움직임 없이 켠 모양과 픽셀까지 같다 */
+.ui-check:checked { animation: ui-check-pop var(--ui-dur-check-pop) ease-out var(--ui-dur-check) backwards; }
+@keyframes ui-check-draw {
+  0% { clip-path: polygon(0 0, 3px 0, 3px 0, 3px 0, 3px 0, 0 0); }
+  40% { clip-path: polygon(0 0, 3px 0, 3px calc(100% - 3px), 3px calc(100% - 3px), 3px 100%, 0 100%); }
+  100% { clip-path: polygon(0 0, 3px 0, 3px calc(100% - 3px), 100% calc(100% - 3px), 100% 100%, 0 100%); }
+}
+@keyframes ui-check-pop { 35% { scale: var(--ui-check-pop); } 70% { scale: .98; } }
 .ui-check.ui-box { border-radius: var(--ui-r-8); }
 .ui-radio { appearance: none; -webkit-appearance: none; width: var(--ui-check); height: var(--ui-check); border-radius: 50%; box-shadow: inset 0 0 0 2px var(--ui-control); margin: 0; cursor: pointer; transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade); flex: none; }
 .ui-radio:checked { box-shadow: inset 0 0 0 calc(var(--ui-check) * .29) var(--ui-accent); }
