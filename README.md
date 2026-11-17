@@ -60,6 +60,12 @@ studio/            (git 제외)
     └── cuts/      잘라낸 곡
 ```
 
+## 화면 부품 (ui-kit)
+
+웹 화면은 공용 화면 부품 [ui-kit](../ui-kit) 0.3 사본(`ytmp3/static/vendor/ui-kit/`)을 씁니다. 사본은 고치지 않고,
+판을 올릴 때는 `node ~/my/Dev/ui-kit/tools/adopt.mjs ~/my/Dev/project-music --to ytmp3/static/vendor/ui-kit`.
+화면은 받기 · 받은 곡(구간 자르기) · 잘라낸 곡 셋으로 나뉘고, 폰은 하단바, 넓은 화면은 메뉴바로 옮겨 다닙니다.
+
 ## 시험
 
 ```sh

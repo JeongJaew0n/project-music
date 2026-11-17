@@ -306,3 +306,53 @@ def test_test_mode_flag(tmp_path):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+# ---- 화면이 쓰는 ui-kit 사본 ----
+import re  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+KIT = Path(web.STATIC) / "vendor" / "ui-kit"
+
+
+def test_page_loads_ui_kit_copy(server):
+    """화면은 프로젝트 안 키트 사본(0.3.x)을 상대 경로로 읽고, 서버가 그 파일들(글꼴 포함)을 내준다."""
+    base, _ = server
+    page = call(base, "/")[2].decode()
+    refs = re.findall(r'(?:href|src)="(static/vendor/ui-kit/[^"]+)"', page)
+    assert sorted(refs) == ["static/vendor/ui-kit/components.css", "static/vendor/ui-kit/tokens.css",
+                            "static/vendor/ui-kit/ui.js"]
+    assert '<script src="static/vendor/ui-kit/ui.js"></script>' in page  # defer 없이 (첫 화면 테마 깜빡임 방지)
+    for ref in refs:
+        status, headers, body = call(base, "/" + ref)
+        assert status == 200 and body.startswith(b"/* ui-kit 0.3."), ref
+    status, headers, body = call(base, "/static/vendor/ui-kit/fonts/KitSans-Variable.woff2")
+    assert status == 200 and headers["Content-Type"] == "font/woff2" and body[:4] == b"wOF2"
+    assert call(base, "/static/vendor/ui-kit/ui.js")[1]["Content-Type"].startswith("text/javascript")
+
+
+def test_ui_kit_copy_is_untouched():
+    """키트 사본은 고치지 않는다 — 세 파일의 판 번호가 같아야 한다(adopt.mjs 로만 바꾼다)."""
+    stamps = {(KIT / f).read_text().splitlines()[0] for f in ("tokens.css", "components.css", "ui.js")}
+    assert len(stamps) == 1 and re.fullmatch(r"/\* ui-kit 0\.\d+\.\d+ \*/", stamps.pop())
+
+
+@pytest.mark.parametrize("path", [
+    "/static/vendor/..%2F..%2Fweb.py", "/static/vendor/ui-kit/..%2F..%2F..%2Fweb.py",
+    "/static/%2E%2E/web.py", "/static/vendor/ui-kit/.hidden", "/static/vendor/ui-kit/fonts",
+])
+def test_static_subfolders_stay_inside(server, path):
+    base, _ = server
+    assert call(base, path)[0] == 404
+
+
+def test_page_css_uses_kit_tokens_only():
+    """이 화면의 CSS 는 크기·색을 키트 토큰으로만 — 리터럴 색(hex·rgb)이 없다. ui- 이름을 새로 만들지 않는다."""
+    page = (Path(web.STATIC) / "index.html").read_text()
+    css = page.split("<style>", 1)[1].split("</style>", 1)[0]
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b|rgba?\(", css)
+    own = set(re.findall(r"\.([a-zA-Z][\w-]*)", css))
+    kit = (KIT / "components.css").read_text()
+    for name in own:
+        if name.startswith("ui-"):
+            assert f".{name}" in kit, f"키트에 없는 ui- 이름: {name}"

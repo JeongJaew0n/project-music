@@ -1,0 +1,482 @@
+/* ui-kit 0.3.1 */
+/* ui-kit components — tokens.css 다음에 읽는다.
+   - 모든 클래스는 ui- 로 시작한다(부분·꾸밈 포함): <button class="ui-btn ui-primary ui-l">
+   - 글자 크기·치수·모서리·시간은 모두 --ui- 토큰을 쓴다. 쓰는 쪽은 :root 에서 토큰을 바꾼다(tokens.css 참고).
+   - 꼴은 .ui-app 의 폭으로 갈린다: 600 미만 모바일, 600~ 태블릿(모바일 꼴을 가운데 --ui-medium-max 로), 900~ 데스크톱.
+     .ui-app 이 없으면 모바일 꼴. 컨테이너 쿼리 조건은 변수로 못 바꾼다(데스크톱 폭은 <html data-ui-wide-at> 으로).
+   - .ui-app 밖에서도 부품은 깨지지 않는다(border-box·글꼴 물려받기). 키트 글꼴·글자색만 원하면 감싸는 요소에 ui-scope.
+   - 부품 CSS는 레이어 밖이다: 쓰는 쪽의 button·a 같은 요소 리셋보다 앞선다. */
+
+/* ---------- 바탕 ---------- */
+html:has(> body.ui-app) { background: var(--ui-bg); }
+.ui-app {
+  container: ui / inline-size;
+  min-height: 100%; margin: 0; background: var(--ui-bg); color: var(--ui-t1);
+  font-family: var(--ui-font); font-size: var(--ui-fs-body); line-height: 1.5; letter-spacing: -0.01em; word-break: keep-all;
+  -webkit-text-size-adjust: 100%;
+}
+:where(.ui-app) *, :where(.ui-app) *::before, :where(.ui-app) *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:where(.ui-app) :is(button, input, select, textarea) { font: inherit; color: inherit; letter-spacing: inherit; }
+:where(.ui-app) button { cursor: pointer; }
+/* .ui-app 밖에서도: 키트 부품과 그 바로 아래 버튼·입력칸은 border-box, 글꼴은 둘레를 물려받는다(특이도 0 — 쓰는 쪽 규칙이 이긴다) */
+:where([class^="ui-"], [class*=" ui-"]), :where([class^="ui-"], [class*=" ui-"])::before, :where([class^="ui-"], [class*=" ui-"])::after,
+:where([class^="ui-"], [class*=" ui-"]) > :where(button, input, select, textarea) { box-sizing: border-box; }
+:where(button, input, select, textarea):where([class^="ui-"], [class*=" ui-"]), :where([class^="ui-"], [class*=" ui-"]) > :where(button, input, select, textarea) { font: inherit; color: inherit; letter-spacing: inherit; }
+:where(button[class^="ui-"], button[class*=" ui-"], [class^="ui-"] > button, [class*=" ui-"] > button) { cursor: pointer; }
+/* 가벼운 범위: 키트 글꼴·글자색·자간만(바탕·높이·컨테이너 없음). 기존 화면 일부에 키트를 쓸 때 */
+.ui-scope { font-family: var(--ui-font); color: var(--ui-t1); letter-spacing: -0.01em; }
+:where(.ui-app, .ui-scope) :focus-visible, :where([class^="ui-"], [class*=" ui-"]):focus-visible, :where([class^="ui-"], [class*=" ui-"]) > :focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+/* 하단바에 가리지 않게 바닥에 빈 자리. 컨테이너 쿼리는 컨테이너 자신에는 안 걸리지만 그 ::after 에는 걸린다 */
+.ui-app:has(.ui-tabbar:not(.ui-static))::after { content: ""; display: block; height: calc(var(--ui-tab-h) + 30px + env(safe-area-inset-bottom, 0px)); }
+.ui-app:has(.ui-floatbar:not(.ui-static))::after { content: ""; display: block; height: calc(var(--ui-floatbar-h) + 32px + env(safe-area-inset-bottom, 0px)); }
+.ui-ic { width: var(--ui-icon); height: var(--ui-icon); flex: none; }
+.ui-spacer { flex: 1; }
+.ui-only-desktop { display: none !important; }
+/* HTML hidden 이 키트 부품에도 먹게 한다(부품이 display 를 직접 정해서 브라우저 규칙이 지던 것). until-found 는 브라우저에 맡긴다 */
+[hidden]:not([hidden="until-found"]):where([class^="ui-"], [class*=" ui-"], .ui-app *) { display: none !important; }
+
+/* 키트 부품 안의 링크·제목만 바로잡는다(쓰는 쪽 글 속 링크·제목은 건드리지 않음) */
+:is(.ui-btn, .ui-row, .ui-menu > a, .ui-drop a, .ui-tabbar a, .ui-floatbar a, .ui-split a, .ui-icon-grid > a, .ui-footer a, .ui-logo, .ui-chip) { color: inherit; text-decoration: none; }
+:is(.ui-card-head, .ui-page-h, .ui-hero, .ui-sheet, .ui-dialog) :is(h1, h2, h3) { margin: 0; }
+
+/* 글자 */
+.ui-display { font-size: var(--ui-fs-display); line-height: var(--ui-lh-display); font-weight: 700; letter-spacing: -0.02em; }
+.ui-h1 { font-size: var(--ui-fs-h1); line-height: var(--ui-lh-h1); font-weight: 700; }
+.ui-h2 { font-size: var(--ui-fs-h2); line-height: var(--ui-lh-h2); font-weight: 700; }
+.ui-h3 { font-size: var(--ui-fs-h3); line-height: var(--ui-lh-h3); font-weight: 700; }
+.ui-body-l { font-size: var(--ui-fs-body-l); line-height: var(--ui-lh-body-l); }
+.ui-body { font-size: var(--ui-fs-body); line-height: var(--ui-lh-body); }
+.ui-caption { font-size: var(--ui-fs-caption); line-height: var(--ui-lh-caption); color: var(--ui-t5); }
+.ui-tiny { font-size: var(--ui-fs-tiny); line-height: var(--ui-lh-tiny); color: var(--ui-t5); }
+.ui-muted { color: var(--ui-t4); }
+.ui-num { font-variant-numeric: tabular-nums; }
+
+/* ---------- 레이아웃 ---------- */
+.ui-wrap { width: 100%; max-width: var(--ui-max); margin: 0 auto; padding-left: max(var(--ui-gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--ui-gutter), env(safe-area-inset-right, 0px)); }
+.ui-main { display: flex; flex-direction: column; gap: var(--ui-gutter); padding-block: var(--ui-space-4) var(--ui-space-20); }
+.ui-grid, .ui-col { display: flex; flex-direction: column; gap: var(--ui-gutter); min-width: 0; }
+/* 목록-상세: 좁으면 data-ui-view(list 기본 | detail) 에 따라 한쪽만, 데스크톱 꼴이면 나란히. [data-ui-detail] 을 누르면 상세, [data-ui-back] 은 목록으로 */
+.ui-list-pane, .ui-detail-pane { display: flex; flex-direction: column; gap: var(--ui-gutter); min-width: 0; }
+:where(.ui-list-detail:not([data-ui-view="detail"])) > .ui-detail-pane, :where(.ui-list-detail[data-ui-view="detail"]) > .ui-list-pane { display: none; }
+:root:not(:has(.ui-list-detail[data-ui-view="detail"])) [data-ui-back] { display: none !important; }
+.ui-list-pane .ui-row[aria-current="true"] { background: var(--ui-fill); }
+.ui-bleed { margin-inline: calc(var(--ui-pad) * -1); }
+.ui-page-h { padding: var(--ui-space-8) var(--ui-space-8) var(--ui-space-4); }
+.ui-page-h h1 { font-size: var(--ui-fs-h1); line-height: var(--ui-lh-h1); font-weight: 700; }
+.ui-page-h p { margin: var(--ui-space-4) 0 0; color: var(--ui-t4); }
+.ui-hero, .ui-footer { display: none; }
+.ui-empty { padding: calc(var(--ui-space-32) + var(--ui-space-4)) var(--ui-space-20); text-align: center; color: var(--ui-t5); }
+.ui-empty > svg { display: block; width: var(--ui-tile-size); height: var(--ui-tile-size); margin: 0 auto var(--ui-space-10); color: var(--ui-t6); }
+
+/* ---------- 버튼 ---------- */
+.ui-btn { --ui-btn-h: var(--ui-btn-h-m); --ui-btn-px: var(--ui-space-16); --ui-btn-fs: var(--ui-fs-body); --ui-btn-r: var(--ui-r-btn-m); display: inline-flex; align-items: center; justify-content: center; gap: var(--ui-space-6); height: var(--ui-btn-h); padding: 0 var(--ui-btn-px); font-size: var(--ui-btn-fs); font-weight: 600; border-radius: var(--ui-btn-r); border: 0; white-space: nowrap; background: var(--ui-fill); color: var(--ui-t3); transition: background-color var(--ui-dur-fade) var(--ui-ease-fade), transform var(--ui-dur-press) var(--ui-ease-fade), opacity var(--ui-dur-fade) var(--ui-ease-fade); user-select: none; position: relative; }
+.ui-btn:active:not(:disabled) { transform: scale(var(--ui-press)); }
+.ui-btn.ui-s { --ui-btn-h: var(--ui-btn-h-s); --ui-btn-px: var(--ui-space-12); --ui-btn-fs: var(--ui-fs-sub); --ui-btn-r: var(--ui-r-btn-s); }
+.ui-btn.ui-m { --ui-btn-h: var(--ui-btn-h-m); --ui-btn-px: var(--ui-space-16); --ui-btn-fs: var(--ui-fs-body); --ui-btn-r: var(--ui-r-btn-m); }
+.ui-btn.ui-l { --ui-btn-h: var(--ui-btn-h-l); --ui-btn-px: var(--ui-space-20); --ui-btn-fs: var(--ui-fs-menu); --ui-btn-r: var(--ui-r-btn-l); }
+.ui-btn.ui-xl { --ui-btn-h: var(--ui-btn-h-xl); --ui-btn-px: var(--ui-space-24); --ui-btn-fs: var(--ui-fs-body-l); --ui-btn-r: var(--ui-r-btn-xl); }
+.ui-btn.ui-block { display: flex; width: 100%; }
+.ui-btn.ui-primary { background: var(--ui-accent); color: var(--ui-on-accent); }
+.ui-btn.ui-primary:active:not(:disabled) { background: var(--ui-accent-press); }
+.ui-btn.ui-weak { background: var(--ui-accent-weak); color: var(--ui-accent-weak-t); }
+.ui-btn.ui-weak:active:not(:disabled) { background: var(--ui-accent-weak-press); }
+.ui-btn.ui-neutral { background: var(--ui-fill); color: var(--ui-t3); }
+.ui-btn.ui-neutral:active:not(:disabled) { background: var(--ui-fill-press); }
+.ui-btn.ui-danger { background: var(--ui-danger); color: var(--ui-on-danger); }
+.ui-btn.ui-danger:active:not(:disabled) { background: var(--ui-danger-press); }
+.ui-btn.ui-danger-weak { background: var(--ui-danger-weak); color: var(--ui-danger-t); }
+.ui-btn.ui-ghost { background: var(--ui-ghost); color: var(--ui-t2); --ui-btn-r: var(--ui-r-btn-l); }
+.ui-btn.ui-ghost:active:not(:disabled) { background: var(--ui-ghost-press); }
+.ui-btn.ui-text { background: none; color: var(--ui-accent-weak-t); padding: 0 var(--ui-space-8); }
+.ui-btn:disabled { opacity: .38; cursor: not-allowed; }
+.ui-btn.ui-loading { color: transparent !important; pointer-events: none; }
+.ui-btn.ui-loading::after { content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid; border-color: var(--ui-spin, var(--ui-t3)) var(--ui-spin, var(--ui-t3)) transparent transparent; animation: ui-spin .7s linear infinite; }
+.ui-btn.ui-loading.ui-primary { --ui-spin: var(--ui-on-accent); }
+.ui-btn.ui-loading.ui-weak { --ui-spin: var(--ui-accent-weak-t); }
+.ui-btn.ui-loading.ui-danger { --ui-spin: var(--ui-on-danger); }
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+.ui-btn-row { display: flex; gap: var(--ui-space-8); flex-wrap: wrap; align-items: center; }
+.ui-ctas { display: grid; grid-template-columns: 1fr 2fr; gap: var(--ui-space-8); }
+.ui-ctas.ui-even { grid-template-columns: 1fr 1fr; }
+.ui-ctas.ui-one { grid-template-columns: 1fr; }
+.ui-round-btn { width: var(--ui-tap); height: var(--ui-tap); border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--ui-ghost); color: var(--ui-t2); transition: transform var(--ui-dur-press) var(--ui-ease-fade), background-color var(--ui-dur-fade) var(--ui-ease-fade); flex: none; }
+.ui-round-btn.ui-s { width: var(--ui-btn-h-m); height: var(--ui-btn-h-m); }
+.ui-round-btn:active { transform: scale(var(--ui-press-sm)); background: var(--ui-ghost-press); }
+.ui-icon-btn { width: var(--ui-tap); height: var(--ui-tap); display: grid; place-items: center; border: 0; background: none; border-radius: 50%; color: var(--ui-t3); position: relative; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade), transform var(--ui-dur-press) var(--ui-ease-fade); flex: none; }
+.ui-icon-btn:active { background: var(--ui-fill); transform: scale(var(--ui-press-sm)); }
+.ui-icon-btn .ui-dot { position: absolute; top: 23%; right: 23%; width: 7px; height: 7px; border-radius: 50%; background: var(--ui-danger); box-shadow: 0 0 0 2px var(--ui-bg); }
+
+/* ---------- 카드 · 목록 ---------- */
+.ui-card { background: var(--ui-surface); border-radius: var(--ui-r-card); overflow: hidden; }
+.ui-card-pad { padding: var(--ui-pad); display: flex; flex-direction: column; gap: var(--ui-space-14); }
+.ui-card-head { display: flex; align-items: center; gap: var(--ui-space-8); padding: var(--ui-space-20) var(--ui-pad) var(--ui-space-6); }
+.ui-card-head :is(h2, h3) { font-size: var(--ui-fs-body-l); line-height: 1.4; font-weight: 700; color: var(--ui-t1); flex: 1; }
+.ui-card-head .ui-more { font-size: var(--ui-fs-sub); color: var(--ui-t4); border: 0; background: none; padding: var(--ui-space-4) 0; display: inline-flex; align-items: center; transition: color var(--ui-dur-fade) var(--ui-ease-fade); position: relative; }
+/* 글자만 한 줄이라 29px — 모양은 그대로 두고 누르는 자리만 위아래로 넓힌다(보조 동작 32 이상) */
+.ui-card-head .ui-more::before { content: ""; position: absolute; inset: calc(var(--ui-space-4) * -1) calc(var(--ui-space-8) * -1); }
+.ui-card-head .ui-more svg { width: 16px; height: 16px; }
+.ui-rows { display: flex; flex-direction: column; padding-block: var(--ui-space-6); }
+.ui-rows.ui-flush { padding: 0; }
+.ui-row { display: flex; align-items: center; gap: var(--ui-space-12); min-height: var(--ui-row-h); padding: var(--ui-space-6) var(--ui-pad); border: 0; background: none; width: 100%; text-align: left; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); cursor: pointer; }
+.ui-row:active { background: var(--ui-fill); }
+.ui-row.ui-static { cursor: default; }
+.ui-row.ui-static:active { background: none; }
+label.ui-row.ui-static { cursor: pointer; }
+.ui-row .ui-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ui-row .ui-t { font-size: var(--ui-fs-body-l); font-weight: 600; color: var(--ui-t1); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ui-row .ui-t.ui-plain { font-weight: 500; }
+.ui-row .ui-t.ui-danger { color: var(--ui-danger); }
+.ui-row .ui-d { font-size: var(--ui-fs-sub); color: var(--ui-t4); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ui-row .ui-rank { width: 18px; font-size: var(--ui-fs-body-l); font-weight: 600; color: var(--ui-t2); text-align: center; font-variant-numeric: tabular-nums; flex: none; }
+.ui-row .ui-chev { width: 20px; height: 20px; color: var(--ui-t6); flex: none; }
+.ui-tile { width: var(--ui-tile-size); height: var(--ui-tile-size); border-radius: var(--ui-r-tile); display: grid; place-items: center; flex: none; background: var(--ui-tile); color: var(--ui-t3); }
+.ui-tile > svg { width: 55%; height: 55%; }
+.ui-tile.ui-s { width: var(--ui-tile-size-s); height: var(--ui-tile-size-s); border-radius: calc(var(--ui-r-tile) - var(--ui-r-2)); }
+.ui-tile.ui-l { width: var(--ui-tile-size-l); height: var(--ui-tile-size-l); border-radius: calc(var(--ui-r-tile) + var(--ui-r-4)); }
+.ui-tile.ui-accent { background: var(--ui-accent-weak); color: var(--ui-accent-weak-t); }
+.ui-tile.ui-danger { background: var(--ui-danger-weak); color: var(--ui-danger-t); }
+.ui-tile.ui-warning { background: var(--ui-warning-weak); color: var(--ui-warning-t); }
+.ui-tile.ui-success { background: var(--ui-success-weak); color: var(--ui-success-t); }
+.ui-split { display: flex; align-items: center; border-top: 1px solid var(--ui-line); margin-top: var(--ui-space-4); padding-inline: var(--ui-space-8); }
+.ui-split :is(button, a) { border: 0; background: none; padding: var(--ui-space-12); font-size: var(--ui-fs-body); color: var(--ui-t3); border-radius: var(--ui-r-10); transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-split :is(button, a):active { background: var(--ui-fill); }
+.ui-split .ui-sep { width: 1px; height: 12px; background: var(--ui-line-strong); flex: none; }
+.ui-split .ui-grow { margin-left: auto; }
+.ui-split.ui-even { margin: var(--ui-space-6) var(--ui-pad) 0; padding: var(--ui-space-4) 0; }
+.ui-split.ui-even :is(button, a) { flex: 1; min-width: 0; padding: var(--ui-space-12) var(--ui-space-4); text-align: center; }
+.ui-banner { position: relative; display: flex; align-items: center; gap: var(--ui-space-14); padding: var(--ui-pad); }
+.ui-banner .ui-txt { flex: 1; min-width: 0; }
+.ui-banner .ui-t { font-size: var(--ui-fs-body-l); font-weight: 700; line-height: 1.4; }
+.ui-banner .ui-d { font-size: var(--ui-fs-sub); color: var(--ui-t4); }
+.ui-banner .ui-x { position: absolute; top: -4px; right: -4px; width: 40px; height: 40px; border: 0; background: none; color: var(--ui-t5); display: grid; place-items: center; border-radius: 50%; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade), color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-banner .ui-x svg { width: 18px; height: 18px; }
+.ui-big-num { padding: var(--ui-space-20) var(--ui-pad) var(--ui-space-4); }
+.ui-big-num small { display: block; font-size: var(--ui-fs-sub); color: var(--ui-t4); }
+.ui-big-num b { display: block; font-size: var(--ui-fs-h1); line-height: 1.35; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.ui-big-num b .ui-u { font-size: var(--ui-fs-h3); font-weight: 600; margin-left: var(--ui-space-2); }
+.ui-bars { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--ui-space-8); align-items: end; height: calc(92px * var(--ui-scale)); padding: var(--ui-space-10) var(--ui-pad) 0; }
+.ui-bars i { display: block; border-radius: var(--ui-r-6) var(--ui-r-6) var(--ui-r-4) var(--ui-r-4); background: var(--ui-fill); min-height: 6px; }
+.ui-bars i.ui-on { background: var(--ui-highlight); }
+.ui-bars-l { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--ui-space-8); padding: var(--ui-space-6) var(--ui-pad) var(--ui-pad); font-size: var(--ui-fs-mini); color: var(--ui-t5); text-align: center; }
+.ui-av { width: calc(44px * var(--ui-scale)); height: calc(44px * var(--ui-scale)); border-radius: 50%; display: grid; place-items: center; color: var(--ui-on-color); font-weight: 700; font-size: var(--ui-fs-body-l); flex: none; background: var(--ui-t4); }
+.ui-av.ui-s { width: var(--ui-tile-size-s); height: var(--ui-tile-size-s); font-size: var(--ui-fs-sub); }
+.ui-icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ui-space-4) 0; padding: var(--ui-space-8) var(--ui-space-8) var(--ui-space-16); }
+.ui-icon-grid > :is(button, a) { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-8); padding: var(--ui-space-10) var(--ui-space-4); border-radius: var(--ui-r-16); font-size: var(--ui-fs-caption); color: var(--ui-t3); text-align: center; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-icon-grid > :is(button, a):active { background: var(--ui-fill); }
+.ui-icon-grid .ui-tile { width: calc(52px * var(--ui-scale)); height: calc(52px * var(--ui-scale)); border-radius: calc(var(--ui-r-tile) + var(--ui-r-4)); }
+
+/* ---------- 배지 · 칩 · 탭 · 세그먼트 ---------- */
+.ui-badge { display: inline-flex; align-items: center; height: var(--ui-badge-h); padding: 0 var(--ui-space-8); border-radius: var(--ui-r-8); font-size: var(--ui-fs-caption); font-weight: 600; white-space: nowrap; background: var(--ui-fill); color: var(--ui-t3); }
+.ui-badge.ui-s { height: calc(var(--ui-badge-h) - 4px); font-size: var(--ui-fs-tiny); padding: 0 var(--ui-space-6); border-radius: var(--ui-r-6); }
+.ui-badge.ui-accent { background: var(--ui-accent-weak); color: var(--ui-accent-weak-t); }
+.ui-badge.ui-danger { background: var(--ui-danger-weak); color: var(--ui-danger-t); }
+.ui-badge.ui-warning { background: var(--ui-warning-weak); color: var(--ui-warning-t); }
+.ui-badge.ui-success { background: var(--ui-success-weak); color: var(--ui-success-t); }
+.ui-badge.ui-solid { background: var(--ui-accent); color: var(--ui-on-accent); }
+.ui-chips { display: flex; gap: var(--ui-space-8); overflow-x: auto; scrollbar-width: none; padding-block: var(--ui-space-2); }
+.ui-chips::-webkit-scrollbar { display: none; }
+.ui-chip { flex: none; height: var(--ui-chip-h); padding: 0 var(--ui-space-14); border-radius: var(--ui-r-chip); border: 0; background: var(--ui-surface); color: var(--ui-t3); font-size: var(--ui-fs-body); font-weight: 500; display: inline-flex; align-items: center; gap: var(--ui-space-6); transition: background-color var(--ui-dur-fade) var(--ui-ease-fade), color var(--ui-dur-fade) var(--ui-ease-fade), transform var(--ui-dur-press) var(--ui-ease-fade); }
+.ui-chip:active { transform: scale(var(--ui-press)); }
+.ui-chips.ui-on-card .ui-chip { background: var(--ui-fill); }
+.ui-chip[aria-pressed="true"], .ui-chips.ui-on-card .ui-chip[aria-pressed="true"] { background: var(--ui-t2); color: var(--ui-surface); font-weight: 600; }
+.ui-tabs { display: flex; gap: var(--ui-space-24); border-bottom: 1px solid var(--ui-line); padding-inline: var(--ui-pad); overflow-x: auto; scrollbar-width: none; }
+.ui-tabs::-webkit-scrollbar { display: none; }
+.ui-tab { flex: none; border: 0; background: none; padding: var(--ui-space-12) 0 var(--ui-space-10); font-size: var(--ui-fs-body-l); font-weight: 600; color: var(--ui-t5); position: relative; transition: color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-tab[aria-selected="true"] { color: var(--ui-t1); }
+.ui-tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--ui-t1); border-radius: var(--ui-r-2); }
+.ui-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--ui-fill); border-radius: var(--ui-r-10); padding: var(--ui-space-4); position: relative; isolation: isolate; align-self: flex-start; }
+.ui-seg.ui-block { display: grid; width: 100%; align-self: stretch; }
+.ui-seg > button { border: 0; background: none; height: var(--ui-seg-h); padding: 0 var(--ui-space-14); font-size: var(--ui-fs-sub); font-weight: 500; color: var(--ui-t4); border-radius: var(--ui-r-8); transition: color var(--ui-dur-move) var(--ui-ease-fade); }
+.ui-seg > button[aria-pressed="true"] { color: var(--ui-t1); font-weight: 600; }
+/* 막대가 아직 없으면(ui.js 없이, 숨은 채 그림) 고른 칸이 직접 바탕을 갖는다. ui.js 가 막대를 놓으면 data-ui-thumb 를 붙인다 */
+.ui-seg:not([data-ui-thumb]) > button[aria-pressed="true"] { background: var(--ui-surface); box-shadow: var(--ui-shadow-sm); }
+.ui-seg > .ui-thumb { position: absolute; top: var(--ui-space-4); bottom: var(--ui-space-4); left: var(--ui-space-4); width: 0; border-radius: var(--ui-r-8); background: var(--ui-surface); box-shadow: var(--ui-shadow-sm); z-index: -1; transition: transform var(--ui-dur-move) var(--ui-ease-move), width var(--ui-dur-move) var(--ui-ease-move); }
+
+/* ---------- 입력 ---------- */
+.ui-field { display: flex; flex-direction: column; gap: var(--ui-space-8); }
+.ui-field > label { font-size: var(--ui-fs-sub); color: var(--ui-t4); font-weight: 500; }
+.ui-field .ui-help { font-size: var(--ui-fs-caption); color: var(--ui-t5); }
+.ui-field.ui-error .ui-help { color: var(--ui-danger); }
+.ui-input { height: var(--ui-input-h); border-radius: var(--ui-r-input); border: 0; background: var(--ui-fill); padding: 0 var(--ui-space-16); font-size: var(--ui-fs-body-l); color: var(--ui-t1); width: 100%; outline: none; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade), background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+textarea.ui-input { height: auto; min-height: calc(var(--ui-input-h) * 2); padding: var(--ui-space-14) var(--ui-space-16); resize: vertical; line-height: 1.5; }
+.ui-input::placeholder { color: var(--ui-t5); }
+.ui-input:focus { box-shadow: inset 0 0 0 2px var(--ui-focus); background: var(--ui-surface); }
+.ui-field.ui-error .ui-input { box-shadow: inset 0 0 0 2px var(--ui-danger); }
+.ui-line-input { border: 0; border-bottom: 2px solid var(--ui-line-strong); background: none; height: var(--ui-tap); font-size: var(--ui-fs-h2); font-weight: 600; padding: 0; width: 100%; outline: none; color: var(--ui-t1); border-radius: 0; transition: border-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-line-input:focus { border-bottom-color: var(--ui-focus); }
+.ui-line-input::placeholder { color: var(--ui-t6); }
+.ui-search { display: flex; align-items: center; gap: var(--ui-space-8); height: var(--ui-tap); border-radius: var(--ui-r-input); background: var(--ui-surface); padding: 0 var(--ui-space-14); color: var(--ui-t5); transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-search.ui-on-card { background: var(--ui-fill); }
+.ui-search input { border: 0; background: none; outline: none; flex: 1; min-width: 0; font-size: var(--ui-fs-body-l); color: var(--ui-t1); }
+.ui-search input::placeholder { color: var(--ui-t5); }
+.ui-search input::-webkit-search-cancel-button { display: none; }
+.ui-search svg { width: 20px; height: 20px; flex: none; }
+.ui-search:focus-within { box-shadow: inset 0 0 0 2px var(--ui-focus); }
+.ui-switch { --ui-switch-knob: calc(var(--ui-switch-h) - 6px); appearance: none; -webkit-appearance: none; width: var(--ui-switch-w); height: var(--ui-switch-h); border-radius: var(--ui-r-full); background: var(--ui-line-strong); position: relative; cursor: pointer; transition: background-color var(--ui-dur-move) var(--ui-ease-fade); flex: none; margin: 0; }
+.ui-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: var(--ui-switch-knob); height: var(--ui-switch-knob); border-radius: 50%; background: var(--ui-knob); box-shadow: var(--ui-shadow-knob); transition: transform var(--ui-dur-move) var(--ui-ease-move); }
+.ui-switch:checked { background: var(--ui-accent); }
+.ui-switch:checked::after { transform: translateX(calc(var(--ui-switch-w) - var(--ui-switch-knob) - 6px)); background: var(--ui-on-accent); }
+.ui-check { appearance: none; -webkit-appearance: none; width: var(--ui-check); height: var(--ui-check); border-radius: 50%; background: var(--ui-line-strong); display: grid; place-items: center; margin: 0; cursor: pointer; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); flex: none; }
+.ui-check::after { content: ""; width: 42%; height: 25%; border-left: 2.5px solid var(--ui-knob); border-bottom: 2.5px solid var(--ui-knob); transform: translateY(-1px) rotate(-45deg); }
+.ui-check:checked { background: var(--ui-accent); }
+.ui-check:checked::after { border-color: var(--ui-on-accent); }
+.ui-check.ui-box { border-radius: var(--ui-r-8); }
+.ui-radio { appearance: none; -webkit-appearance: none; width: var(--ui-check); height: var(--ui-check); border-radius: 50%; box-shadow: inset 0 0 0 2px var(--ui-line-strong); margin: 0; cursor: pointer; transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade); flex: none; }
+.ui-radio:checked { box-shadow: inset 0 0 0 calc(var(--ui-check) * .29) var(--ui-accent); }
+.ui-opt { display: flex; align-items: center; gap: var(--ui-space-12); padding: var(--ui-space-12) 0; font-size: var(--ui-fs-body-l); cursor: pointer; }
+.ui-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-12); padding: var(--ui-space-6) 0; font-size: var(--ui-fs-body-l); }
+.ui-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ui-space-10); }
+.ui-choice { border: 0; background: var(--ui-fill); border-radius: var(--ui-r-16); padding: var(--ui-space-14) var(--ui-space-8) var(--ui-space-12); display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-8); font-size: var(--ui-fs-sub); font-weight: 600; color: var(--ui-t2); box-shadow: inset 0 0 0 2px transparent; transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade), background-color var(--ui-dur-fade) var(--ui-ease-fade), transform var(--ui-dur-press) var(--ui-ease-fade); }
+.ui-choice:active { transform: scale(var(--ui-press)); }
+.ui-choice[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ui-accent); background: var(--ui-accent-weak); color: var(--ui-accent-weak-t); }
+
+/* ---------- 접기 · 선택 상자 · 코드 · 키 · 표 ---------- */
+/* <details class="ui-details"><summary>제목</summary><div>내용</div></details> — 카드 안에 여러 개면 사이에 선 */
+.ui-details > summary { display: flex; align-items: center; gap: var(--ui-space-12); min-height: var(--ui-row-h); padding: var(--ui-space-6) var(--ui-pad); font-size: var(--ui-fs-body-l); font-weight: 600; color: var(--ui-t1); line-height: 1.4; cursor: pointer; list-style: none; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-details > summary::-webkit-details-marker { display: none; }
+.ui-details > summary::after { content: ""; margin-left: auto; flex: none; width: calc(8px * var(--ui-scale)); height: calc(8px * var(--ui-scale)); border-right: 2px solid var(--ui-t5); border-bottom: 2px solid var(--ui-t5); transform: translateY(-2px) rotate(45deg); transition: transform var(--ui-dur-move) var(--ui-ease-move); }
+.ui-details[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.ui-details > summary:active { background: var(--ui-fill); }
+.ui-details > :not(summary) { padding: 0 var(--ui-pad) var(--ui-pad); color: var(--ui-t3); font-size: var(--ui-fs-body); }
+.ui-details + .ui-details { border-top: 1px solid var(--ui-line); }
+:is(.ui-row, .ui-details > summary):focus-visible { outline-offset: -2px; }
+/* <select class="ui-select"> — 입력칸과 같은 꼴, 화살표는 글자 색 그라디언트 두 개로 그린다(토큰을 따름) */
+.ui-select { appearance: none; -webkit-appearance: none; height: var(--ui-input-h); width: 100%; border: 0; border-radius: var(--ui-r-input); padding: 0 calc(var(--ui-space-40) + var(--ui-space-4)) 0 var(--ui-space-16); font-size: var(--ui-fs-body-l); color: var(--ui-t1); cursor: pointer; outline: none; box-shadow: inset 0 0 0 1.5px transparent;
+  background-color: var(--ui-fill); background-image: linear-gradient(45deg, transparent 50%, var(--ui-t4) 50%), linear-gradient(135deg, var(--ui-t4) 50%, transparent 50%);
+  background-position: calc(100% - 22px) 55%, calc(100% - 16px) 55%; background-size: 6px 6px; background-repeat: no-repeat;
+  transition: box-shadow var(--ui-dur-fade) var(--ui-ease-fade), background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-select:focus-visible { box-shadow: inset 0 0 0 2px var(--ui-focus); }
+.ui-select:disabled { opacity: .38; cursor: not-allowed; }
+/* <code class="ui-code"> 글 속 코드 · <pre class="ui-code"> 코드 블록(가로로 길면 블록 안에서 스크롤) */
+.ui-code { font-family: var(--ui-font-mono); font-size: .9em; letter-spacing: 0; background: var(--ui-fill); color: var(--ui-t2); padding: 1px var(--ui-space-6); border-radius: var(--ui-r-6); overflow-wrap: anywhere; }
+pre.ui-code { display: block; margin: 0; padding: var(--ui-space-14) var(--ui-space-16); border-radius: var(--ui-r-input); font-size: var(--ui-fs-caption); line-height: 1.6; overflow-x: auto; white-space: pre; overflow-wrap: normal; tab-size: 2; max-width: 100%; }
+pre.ui-code > code { font: inherit; background: none; padding: 0; color: inherit; }
+/* <kbd class="ui-kbd">⌘</kbd> */
+.ui-kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 1.7em; height: 1.7em; padding: 0 .45em; font-family: var(--ui-font); font-size: .82em; font-weight: 600; line-height: 1; color: var(--ui-t2); background: var(--ui-surface); border-radius: var(--ui-r-6); box-shadow: 0 0 0 1px var(--ui-line-strong), inset 0 -1.5px 0 var(--ui-line-strong); vertical-align: .1em; white-space: nowrap; }
+/* <div class="ui-table" tabindex="0" role="region" aria-label="…"><table>…</table></div> — 넘치면 이 틀 안에서 가로 스크롤 */
+.ui-table { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
+.ui-table > table { width: 100%; border-collapse: collapse; font-size: var(--ui-fs-body); font-variant-numeric: tabular-nums; }
+.ui-table :is(th, td) { padding: var(--ui-space-10) var(--ui-space-12); text-align: left; vertical-align: top; border-bottom: 1px solid var(--ui-line); }
+.ui-table :is(th, td):first-child { padding-left: var(--ui-pad); }
+.ui-table :is(th, td):last-child { padding-right: var(--ui-pad); }
+.ui-table th { font-size: var(--ui-fs-sub); font-weight: 600; color: var(--ui-t4); white-space: nowrap; }
+.ui-table td { color: var(--ui-t2); }
+.ui-table tbody tr:last-child > * { border-bottom: 0; }
+.ui-table :is(th, td).ui-num { text-align: right; white-space: nowrap; }
+
+/* ---------- 진행 · 불러오는 중 ---------- */
+.ui-progress { height: 8px; border-radius: var(--ui-r-full); background: var(--ui-fill); overflow: hidden; }
+.ui-progress > i { display: block; height: 100%; background: var(--ui-accent); border-radius: inherit; transition: width var(--ui-dur-slow) var(--ui-ease-move); }
+.ui-skel { background: linear-gradient(90deg, var(--ui-fill) 0%, var(--ui-surface-2) 50%, var(--ui-fill) 100%); background-size: 200% 100%; animation: ui-shimmer 1.4s linear infinite; border-radius: var(--ui-r-8); }
+@keyframes ui-shimmer { to { background-position: -200% 0; } }
+
+/* ---------- 모바일 상단바 ---------- */
+.ui-topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: var(--ui-z-bar); background: var(--ui-bg); }
+.ui-topbar > .ui-in { height: var(--ui-topbar-h); max-width: var(--ui-max); margin: 0 auto; display: flex; align-items: center; gap: var(--ui-space-4); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(4px, env(safe-area-inset-right, 0px)); }
+.ui-topbar > .ui-in.ui-has-back { padding-left: max(4px, env(safe-area-inset-left, 0px)); }
+.ui-topbar .ui-brand { display: inline-flex; align-items: center; gap: var(--ui-space-2); font-size: var(--ui-fs-lead); font-weight: 700; color: var(--ui-t2); border: 0; background: none; padding: var(--ui-space-6) var(--ui-space-4) var(--ui-space-6) 0; border-radius: var(--ui-r-8); white-space: nowrap; transition: color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-topbar .ui-brand svg { width: 18px; height: 18px; color: var(--ui-t5); }
+.ui-topbar .ui-title { flex: 1; text-align: center; font-size: var(--ui-fs-body-l); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ui-topbar.ui-static { position: relative; top: 0; }
+
+/* ---------- 데스크톱 메뉴바 ---------- */
+.ui-gnb { display: none; position: sticky; top: env(safe-area-inset-top, 0px); z-index: var(--ui-z-bar); background: var(--ui-gnb); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-bottom: 1px solid var(--ui-line); }
+.ui-gnb > .ui-in { height: var(--ui-gnb-h); max-width: var(--ui-max); margin: 0 auto; display: flex; align-items: center; gap: var(--ui-space-8); padding-inline: max(24px, env(safe-area-inset-left, 0px)) max(24px, env(safe-area-inset-right, 0px)); }
+.ui-gnb .ui-logo { white-space: nowrap; display: inline-flex; align-items: center; gap: var(--ui-space-8); font-weight: 800; font-size: var(--ui-fs-lead); margin-right: var(--ui-space-24); color: var(--ui-t1); }
+.ui-gnb .ui-logo-mark { width: calc(26px * var(--ui-scale)); height: calc(26px * var(--ui-scale)); border-radius: var(--ui-r-8); display: grid; place-items: center; background: var(--ui-accent); color: var(--ui-on-accent); flex: none; }
+.ui-gnb .ui-logo-mark svg { width: 62%; height: 62%; }
+.ui-gnb nav { display: flex; gap: var(--ui-space-2); height: 100%; }
+.ui-gnb .ui-right { margin-left: auto; display: flex; gap: var(--ui-space-8); align-items: center; }
+.ui-gnb.ui-static { display: block; position: relative; top: 0; }
+.ui-menu { position: relative; display: flex; align-items: center; }
+.ui-menu > :is(a, button) { font-size: var(--ui-fs-menu); font-weight: 500; color: var(--ui-t2); padding: var(--ui-space-8) var(--ui-space-14); border-radius: var(--ui-r-10); border: 0; background: none; display: inline-flex; align-items: center; gap: var(--ui-space-2); white-space: nowrap; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-menu > [aria-current="page"], .ui-menu > .ui-on { color: var(--ui-accent-weak-t); font-weight: 600; }
+.ui-menu > button svg { width: 16px; height: 16px; color: var(--ui-t5); transition: transform var(--ui-dur-move) var(--ui-ease-fade); }
+.ui-drop { position: absolute; top: calc(100% - 6px); left: -8px; width: 520px; padding: var(--ui-space-12); background: var(--ui-surface); border-radius: var(--ui-r-20); box-shadow: var(--ui-shadow); border: 1px solid var(--ui-line); display: grid; grid-template-columns: 1fr 1fr; gap: var(--ui-space-2); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity var(--ui-dur-fade) var(--ui-ease-fade), transform var(--ui-dur-fade) var(--ui-ease-fade), visibility var(--ui-dur-fade); z-index: 5; }
+.ui-menu:focus-within .ui-drop, .ui-menu.ui-open .ui-drop { opacity: 1; visibility: visible; transform: none; }
+.ui-menu.ui-open > button svg { transform: rotate(180deg); }
+.ui-drop a { display: flex; gap: var(--ui-space-12); align-items: center; padding: var(--ui-space-10); border-radius: var(--ui-r-12); transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-drop b { display: block; font-size: var(--ui-fs-body); font-weight: 600; color: var(--ui-t1); }
+.ui-drop small { display: block; font-size: var(--ui-fs-caption); color: var(--ui-t4); line-height: 1.4; }
+
+/* ---------- 하단바 ---------- */
+.ui-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--ui-z-tabbar); background: var(--ui-bar); border-radius: var(--ui-r-20) var(--ui-r-20) 0 0; box-shadow: 0 0 0 1px var(--ui-line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.ui-tabbar > .ui-in { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; max-width: 560px; margin: 0 auto; padding: 0 var(--ui-space-8); }
+.ui-tabbar :is(a, button) { display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-4); height: var(--ui-tab-h); justify-content: center; font-size: var(--ui-fs-tiny); font-weight: 500; color: var(--ui-t4); border: 0; background: none; border-radius: var(--ui-r-16); transition: transform var(--ui-dur-press) var(--ui-ease-fade), color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-tabbar :is(a, button):active { transform: scale(var(--ui-press-sm)); }
+.ui-tabbar svg { width: calc(26px * var(--ui-scale)); height: calc(26px * var(--ui-scale)); }
+.ui-tabbar .ui-fill, .ui-floatbar .ui-items .ui-fill { display: none; }
+.ui-tabbar [aria-current="page"], .ui-floatbar .ui-items [aria-current="page"] { color: var(--ui-t1); font-weight: 600; }
+.ui-tabbar [aria-current="page"] .ui-fill, .ui-floatbar .ui-items [aria-current="page"] .ui-fill { display: block; }
+.ui-tabbar [aria-current="page"] .ui-line, .ui-floatbar .ui-items [aria-current="page"] .ui-line { display: none; }
+.ui-floatbar { position: fixed; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: var(--ui-z-tabbar); display: flex; align-items: center; gap: var(--ui-space-4); height: var(--ui-floatbar-h); padding: 0 var(--ui-space-10) 0 var(--ui-space-8); border-radius: var(--ui-r-full); background: var(--ui-bar); box-shadow: var(--ui-shadow), 0 0 0 1px var(--ui-line); max-width: 480px; margin: 0 auto; }
+.ui-floatbar .ui-back { width: calc(44px * var(--ui-scale)); height: calc(44px * var(--ui-scale)); border-radius: 50%; border: 0; background: var(--ui-fill); display: grid; place-items: center; color: var(--ui-t2); flex: none; transition: background-color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-floatbar .ui-items { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.ui-floatbar .ui-items > :is(a, button) { display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-2); font-size: var(--ui-fs-tiny); color: var(--ui-t4); padding: var(--ui-space-6) 0; border: 0; background: none; transition: color var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-floatbar .ui-items svg { width: var(--ui-icon); height: var(--ui-icon); }
+.ui-tabbar.ui-static, .ui-floatbar.ui-static { position: relative; left: auto; right: auto; bottom: auto; z-index: 0; }
+.ui-floatbar.ui-static { margin: var(--ui-space-12); }
+
+/* ---------- 오버레이: 시트 · 다이얼로그 · 토스트 ---------- */
+.ui-scrim { position: fixed; inset: 0; z-index: var(--ui-z-overlay); background: var(--ui-scrim); opacity: 0; transition: opacity var(--ui-dur-fade) var(--ui-ease-exit); }
+.ui-scrim.ui-show { opacity: 1; transition: opacity var(--ui-dur-move) var(--ui-ease-fade); }
+.ui-sheet, .ui-dialog, .ui-toast { font-family: var(--ui-font); line-height: 1.5; letter-spacing: -0.01em; word-break: keep-all; }
+.ui-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: calc(var(--ui-z-overlay) + 1); background: var(--ui-surface); color: var(--ui-t1); border-radius: var(--ui-r-sheet) var(--ui-r-sheet) 0 0; padding: var(--ui-space-8) var(--ui-pad) calc(16px + env(safe-area-inset-bottom, 0px)); max-height: 88%; overflow-y: auto; overscroll-behavior: contain; transform: translateY(100%); transition: transform var(--ui-dur-exit) var(--ui-ease-exit); max-width: 560px; margin: 0 auto; }
+.ui-sheet.ui-show { transform: translateY(0); transition: transform var(--ui-dur-sheet) var(--ui-ease-sheet); }
+.ui-sheet:focus { outline: none; }
+.ui-sheet .ui-grab { height: 28px; margin: calc(var(--ui-space-8) * -1) calc(var(--ui-pad) * -1) var(--ui-space-6); display: grid; place-items: center; touch-action: none; cursor: grab; }
+.ui-sheet .ui-grab::before { content: ""; width: 40px; height: 5px; border-radius: var(--ui-r-full); background: var(--ui-line-strong); }
+.ui-sheet h3 { font-size: var(--ui-fs-h2); line-height: 1.4; font-weight: 700; }
+.ui-sheet .ui-lead { margin: var(--ui-space-4) 0 0; font-size: var(--ui-fs-body); color: var(--ui-t4); }
+.ui-sheet .ui-sec { margin-top: var(--ui-space-24); }
+.ui-sheet .ui-sec-t { font-size: var(--ui-fs-sub); font-weight: 600; color: var(--ui-t4); margin-bottom: var(--ui-space-10); }
+.ui-sheet .ui-ctas { margin-top: var(--ui-space-24); }
+.ui-sheet .ui-rows.ui-bleed { margin-top: var(--ui-space-12); }
+.ui-dialog { position: fixed; z-index: calc(var(--ui-z-overlay) + 1); left: 50%; top: 50%; width: min(calc(100% - 48px), 340px); background: var(--ui-surface); color: var(--ui-t1); border-radius: var(--ui-r-sheet); padding: var(--ui-space-24) var(--ui-space-24) var(--ui-space-16); transform: translate(-50%, -46%) scale(.96); opacity: 0; transition: transform var(--ui-dur-fade) var(--ui-ease-exit), opacity var(--ui-dur-fade) var(--ui-ease-exit); }
+.ui-dialog.ui-show { transform: translate(-50%, -50%) scale(1); opacity: 1; transition: transform var(--ui-dur-move) var(--ui-ease-sheet), opacity var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-dialog:focus { outline: none; }
+.ui-dialog h3 { margin: 0 0 var(--ui-space-6); font-size: var(--ui-fs-h3); font-weight: 700; line-height: 1.4; }
+.ui-dialog p { margin: 0; color: var(--ui-t4); font-size: var(--ui-fs-body); }
+.ui-dialog .ui-ctas { margin-top: var(--ui-space-24); }
+.ui-toast { position: fixed; z-index: var(--ui-z-toast); left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px); opacity: 0; background: var(--ui-toast); color: var(--ui-toast-t); padding: var(--ui-space-12) var(--ui-space-16); border-radius: var(--ui-r-16); font-size: var(--ui-fs-body); font-weight: 500; display: flex; gap: var(--ui-space-10); align-items: center; max-width: calc(100% - 32px); width: max-content; transition: transform var(--ui-dur-exit) var(--ui-ease-exit), opacity var(--ui-dur-fade) var(--ui-ease-exit); pointer-events: none; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.ui-toast.ui-show { transform: translate(-50%, 0); opacity: 1; transition: transform var(--ui-dur-sheet) var(--ui-ease-sheet), opacity var(--ui-dur-move) var(--ui-ease-fade); }
+.ui-toast .ui-mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--ui-success); color: var(--ui-on-color); }
+.ui-toast .ui-mark.ui-err { background: var(--ui-danger); color: var(--ui-on-danger); }
+.ui-toast .ui-mark svg { width: 12px; height: 12px; }
+
+/* ---------- 색 시안 고르기 ---------- */
+.ui-pal-dots { display: inline-flex; gap: var(--ui-space-6); padding: var(--ui-space-6) var(--ui-space-8); border-radius: var(--ui-r-full); background: var(--ui-ghost); }
+.ui-pal-dot { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px var(--ui-hairline); transition: transform var(--ui-dur-press) var(--ui-ease-fade), box-shadow var(--ui-dur-fade) var(--ui-ease-fade); }
+.ui-pal-dot[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ui-surface), 0 0 0 4px var(--ui-t1); }
+.ui-pal-dot:active { transform: scale(var(--ui-press-sm)); }
+
+/* ---------- 마우스 올림 ----------
+   마우스처럼 올릴 수 있는 입력에만(터치에서는 :hover 가 눌린 채 남는다). 올림은 누름보다 약하게: 기본색과 누름색 사이 토큰(*-hover). */
+@media (hover: hover) and (pointer: fine) {
+  .ui-btn:hover:not(:active):not(:disabled), .ui-btn.ui-neutral:hover:not(:active):not(:disabled) { background: var(--ui-fill-hover); }
+  .ui-btn.ui-primary:hover:not(:active):not(:disabled) { background: var(--ui-accent-hover); }
+  .ui-btn.ui-weak:hover:not(:active):not(:disabled) { background: var(--ui-accent-weak-hover); }
+  .ui-btn.ui-danger:hover:not(:active):not(:disabled) { background: var(--ui-danger-hover); }
+  .ui-btn.ui-danger-weak:hover:not(:active):not(:disabled) { background: var(--ui-danger-weak-hover); }
+  .ui-btn.ui-ghost:hover:not(:active):not(:disabled), .ui-btn.ui-text:hover:not(:active):not(:disabled) { background: var(--ui-ghost-hover); }
+  .ui-row:not(.ui-static):hover:not(:active), label.ui-row.ui-static:hover:not(:active) { background: var(--ui-surface-hover); }
+  .ui-chip:not([aria-pressed="true"]):hover:not(:active) { background: var(--ui-surface-hover); }
+  .ui-chips.ui-on-card .ui-chip:not([aria-pressed="true"]):hover:not(:active) { background: var(--ui-fill-hover); }
+  .ui-tab:not([aria-selected="true"]):hover:not(:active) { color: var(--ui-t3); }
+  .ui-seg > button:not([aria-pressed="true"]):hover:not(:active) { color: var(--ui-t2); }
+  .ui-icon-btn:hover:not(:active), .ui-topbar .ui-brand:hover:not(:active) { background: var(--ui-ghost); }
+  .ui-topbar .ui-brand:hover:not(:active) { color: var(--ui-t1); }
+  .ui-round-btn:hover:not(:active) { background: var(--ui-ghost-hover); }
+  .ui-choice:not([aria-pressed="true"]):hover:not(:active) { background: var(--ui-fill-hover); }
+  .ui-split :is(button, a):hover:not(:active), .ui-icon-grid > :is(button, a):hover:not(:active) { background: var(--ui-surface-hover); }
+  .ui-menu > :is(a, button):hover:not(:active) { background: var(--ui-fill); }
+  .ui-menu:hover .ui-drop { opacity: 1; visibility: visible; transform: none; }
+  .ui-menu:hover > button svg { transform: rotate(180deg); }
+  .ui-drop a:hover:not(:active) { background: var(--ui-fill); }
+  .ui-tabbar :is(a, button):not([aria-current="page"]):hover:not(:active), .ui-floatbar .ui-items > :is(a, button):not([aria-current="page"]):hover:not(:active) { color: var(--ui-t2); }
+  .ui-floatbar .ui-back:hover:not(:active) { background: var(--ui-fill-hover); }
+  .ui-card-head .ui-more:hover:not(:active) { color: var(--ui-t2); }
+  .ui-banner .ui-x:hover:not(:active) { background: var(--ui-ghost); color: var(--ui-t3); }
+  .ui-pal-dot:not([aria-pressed="true"]):hover:not(:active) { box-shadow: 0 0 0 2px var(--ui-surface), 0 0 0 4px var(--ui-line-strong); }
+  .ui-switch:not(:checked):hover:not(:active), .ui-check:not(:checked):hover:not(:active) { background: var(--ui-t6); }
+  .ui-switch:checked:hover:not(:active), .ui-check:checked:hover:not(:active) { background: var(--ui-accent-hover); }
+  .ui-radio:not(:checked):hover:not(:active) { box-shadow: inset 0 0 0 2px var(--ui-t6); }
+  .ui-input:hover:not(:active):not(:focus) { background: var(--ui-fill-hover); }
+  .ui-line-input:hover:not(:active):not(:focus) { border-bottom-color: var(--ui-t6); }
+  .ui-search:hover:not(:active):not(:focus-within) { background: var(--ui-surface-hover); }
+  .ui-search.ui-on-card:hover:not(:active):not(:focus-within) { background: var(--ui-fill-hover); }
+  .ui-details > summary:hover:not(:active) { background: var(--ui-surface-hover); }
+  .ui-select:hover:not(:active):not(:disabled):not(:focus-visible) { background-color: var(--ui-fill-hover); }
+  .ui-table tbody tr:hover:not(:active) > * { background: var(--ui-surface-hover); }
+}
+
+/* ---------- 동작 줄이기 ----------
+   이동·확대는 없애고 투명도 페이드(--ui-dur-fade)만 남긴다(WCAG 2.3.3). 불러오는 원은 돈다(지금 일하는 중이라는 정보). 데스크톱 가운데 창은 아래 블록이 자리를 잡는다 */
+@media (prefers-reduced-motion: reduce) {
+  :is(.ui-sheet, .ui-dialog, .ui-toast, .ui-scrim), :is(.ui-sheet, .ui-dialog, .ui-toast, .ui-scrim).ui-show { transition: opacity var(--ui-dur-fade) var(--ui-ease-fade); }
+  .ui-sheet, .ui-sheet.ui-show { transform: none; }
+  .ui-sheet { opacity: 0; }
+  .ui-sheet.ui-show { opacity: 1; }
+  .ui-dialog, .ui-dialog.ui-show { transform: translate(-50%, -50%); }
+  .ui-toast, .ui-toast.ui-show { transform: translate(-50%, 0); }
+  .ui-seg > .ui-thumb, .ui-switch::after, .ui-progress > i, .ui-menu > button svg, .ui-details > summary::after { transition-duration: 0s; }
+  .ui-drop { transform: none; }
+  .ui-skel { animation: none; }
+}
+
+/* ---------- 태블릿 ----------
+   .ui-app 폭 600 이상: 모바일 꼴(상단바·하단바·시트) 그대로, 본문과 상단바 안쪽만 가운데 --ui-medium-max 로. 데스크톱 꼴이면 아래 블록이 --ui-max 로 되돌린다 */
+@container ui (min-width: 600px) {
+  .ui-wrap, .ui-topbar > .ui-in { max-width: var(--ui-medium-max); }
+}
+
+/* ---------- 데스크톱 ----------
+   기본: .ui-app 폭 900 이상(컨테이너 쿼리, JS 없이 깜빡임 없음).
+   <html data-ui-wide-at="720"> 이면 ui.js 가 .ui-app 에 data-ui-wide="1|0" 을 적고 그것을 따른다(전환 폭을 프로젝트마다).
+   아래 원본 블록만 고친다. gen:wide 사이의 사본은 tools/gen.mjs 가 만든다. */
+@container ui (min-width: 900px) { :where(.ui-app:not([data-ui-wide])) {
+    .ui-only-desktop { display: revert !important; }
+    .ui-only-mobile { display: none !important; }
+    .ui-topbar:not(.ui-static), .ui-tabbar:not(.ui-static), .ui-floatbar:not(.ui-static) { display: none; }
+    .ui-gnb { display: block; }
+    &::after { display: none !important; }
+    .ui-wrap { --ui-gutter: calc(16px * var(--ui-scale)); padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+    .ui-main { padding-block: 0 var(--ui-space-56); gap: var(--ui-gutter); }
+    .ui-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-gutter); align-items: start; }
+    .ui-grid.ui-side { grid-template-columns: var(--ui-side-w) minmax(0, 1fr); }
+    .ui-grid > .ui-wide { grid-column: 1 / -1; }
+    .ui-wrap, .ui-topbar > .ui-in { max-width: var(--ui-max); }
+    .ui-list-detail { display: grid; grid-template-columns: var(--ui-list-w) minmax(0, 1fr); gap: var(--ui-gutter); align-items: start; }
+    .ui-list-detail > :is(.ui-list-pane, .ui-detail-pane) { display: flex; }
+    .ui-list-detail > .ui-detail-pane { position: sticky; top: calc(var(--ui-gnb-h) + var(--ui-gutter)); }
+    [data-ui-back] { display: none !important; }
+    .ui-col { gap: var(--ui-gutter); }
+    .ui-page-h { padding: calc(var(--ui-space-32) + var(--ui-space-4)) 0 var(--ui-space-12); }
+    .ui-page-h h1 { font-size: var(--ui-fs-page); line-height: 1.35; }
+    .ui-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--ui-space-40); align-items: center; padding: var(--ui-space-56) 0 var(--ui-space-40); }
+    .ui-hero h1 { font-size: var(--ui-fs-hero); line-height: 1.3; font-weight: 700; letter-spacing: -0.025em; text-wrap: balance; }
+    .ui-hero p { margin: var(--ui-space-14) 0 var(--ui-space-24); font-size: var(--ui-fs-lead); color: var(--ui-t4); line-height: 1.6; }
+    .ui-footer { display: block; background: var(--ui-surface); border-top: 1px solid var(--ui-line); margin-top: var(--ui-space-24); }
+    .ui-footer > .ui-in { max-width: var(--ui-max); margin: 0 auto; padding: var(--ui-space-40) var(--ui-space-24) var(--ui-space-56); display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: var(--ui-space-24); }
+    .ui-footer b { display: block; font-size: var(--ui-fs-body); color: var(--ui-t2); margin-bottom: var(--ui-space-12); }
+    .ui-footer :is(a, p) { display: block; font-size: var(--ui-fs-sub); color: var(--ui-t5); margin: 0 0 var(--ui-space-8); }
+    .ui-toast { bottom: 32px; }
+    .ui-sheet { bottom: 50%; border-radius: var(--ui-r-sheet); transform: translateY(calc(50% + 40px)) scale(.98); opacity: 0; transition: transform var(--ui-dur-exit) var(--ui-ease-exit), opacity var(--ui-dur-fade) var(--ui-ease-exit); max-height: 86vh; width: 480px; padding-top: var(--ui-space-24); }
+    .ui-sheet.ui-show { transform: translateY(50%); opacity: 1; transition: transform var(--ui-dur-sheet) var(--ui-ease-sheet), opacity var(--ui-dur-move) var(--ui-ease-fade); }
+    @media (prefers-reduced-motion: reduce) { .ui-sheet, .ui-sheet.ui-show { transform: translateY(50%); transition: opacity var(--ui-dur-fade) var(--ui-ease-fade); } }
+    .ui-sheet .ui-grab { display: none; }
+} }
+/* gen:wide-start — tools/gen.mjs 가 위 블록을 베낀다. 직접 고치지 않는다 */
+:where(.ui-app[data-ui-wide="1"]) {
+    .ui-only-desktop { display: revert !important; }
+    .ui-only-mobile { display: none !important; }
+    .ui-topbar:not(.ui-static), .ui-tabbar:not(.ui-static), .ui-floatbar:not(.ui-static) { display: none; }
+    .ui-gnb { display: block; }
+    &::after { display: none !important; }
+    .ui-wrap { --ui-gutter: calc(16px * var(--ui-scale)); padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+    .ui-main { padding-block: 0 var(--ui-space-56); gap: var(--ui-gutter); }
+    .ui-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-gutter); align-items: start; }
+    .ui-grid.ui-side { grid-template-columns: var(--ui-side-w) minmax(0, 1fr); }
+    .ui-grid > .ui-wide { grid-column: 1 / -1; }
+    .ui-wrap, .ui-topbar > .ui-in { max-width: var(--ui-max); }
+    .ui-list-detail { display: grid; grid-template-columns: var(--ui-list-w) minmax(0, 1fr); gap: var(--ui-gutter); align-items: start; }
+    .ui-list-detail > :is(.ui-list-pane, .ui-detail-pane) { display: flex; }
+    .ui-list-detail > .ui-detail-pane { position: sticky; top: calc(var(--ui-gnb-h) + var(--ui-gutter)); }
+    [data-ui-back] { display: none !important; }
+    .ui-col { gap: var(--ui-gutter); }
+    .ui-page-h { padding: calc(var(--ui-space-32) + var(--ui-space-4)) 0 var(--ui-space-12); }
+    .ui-page-h h1 { font-size: var(--ui-fs-page); line-height: 1.35; }
+    .ui-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--ui-space-40); align-items: center; padding: var(--ui-space-56) 0 var(--ui-space-40); }
+    .ui-hero h1 { font-size: var(--ui-fs-hero); line-height: 1.3; font-weight: 700; letter-spacing: -0.025em; text-wrap: balance; }
+    .ui-hero p { margin: var(--ui-space-14) 0 var(--ui-space-24); font-size: var(--ui-fs-lead); color: var(--ui-t4); line-height: 1.6; }
+    .ui-footer { display: block; background: var(--ui-surface); border-top: 1px solid var(--ui-line); margin-top: var(--ui-space-24); }
+    .ui-footer > .ui-in { max-width: var(--ui-max); margin: 0 auto; padding: var(--ui-space-40) var(--ui-space-24) var(--ui-space-56); display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: var(--ui-space-24); }
+    .ui-footer b { display: block; font-size: var(--ui-fs-body); color: var(--ui-t2); margin-bottom: var(--ui-space-12); }
+    .ui-footer :is(a, p) { display: block; font-size: var(--ui-fs-sub); color: var(--ui-t5); margin: 0 0 var(--ui-space-8); }
+    .ui-toast { bottom: 32px; }
+    .ui-sheet { bottom: 50%; border-radius: var(--ui-r-sheet); transform: translateY(calc(50% + 40px)) scale(.98); opacity: 0; transition: transform var(--ui-dur-exit) var(--ui-ease-exit), opacity var(--ui-dur-fade) var(--ui-ease-exit); max-height: 86vh; width: 480px; padding-top: var(--ui-space-24); }
+    .ui-sheet.ui-show { transform: translateY(50%); opacity: 1; transition: transform var(--ui-dur-sheet) var(--ui-ease-sheet), opacity var(--ui-dur-move) var(--ui-ease-fade); }
+    @media (prefers-reduced-motion: reduce) { .ui-sheet, .ui-sheet.ui-show { transform: translateY(50%); transition: opacity var(--ui-dur-fade) var(--ui-ease-fade); } }
+    .ui-sheet .ui-grab { display: none; }
+}
+/* gen:wide-end */

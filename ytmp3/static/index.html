@@ -1,209 +1,223 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-ui-store="ytmp3">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>ytmp3</title>
+<!-- ui-kit 사본 (ytmp3/static/vendor/ui-kit, 고치지 않는다 — 판 올리기는 node ~/my/Dev/ui-kit/tools/adopt.mjs) -->
+<link rel="stylesheet" href="static/vendor/ui-kit/tokens.css">
+<link rel="stylesheet" href="static/vendor/ui-kit/components.css">
+<script src="static/vendor/ui-kit/ui.js"></script>
 <style>
-  :root {
-    --bg: #f6f5f2; --panel: #ffffff; --ink: #1c1b19; --muted: #6b6862; --line: #e3e0da;
-    --accent: #d2381f; --accent-ink: #ffffff; --ok: #2f7d4f; --err: #b3261e; --track: #ece9e3;
-    --wave: #cfcac1; --sel: rgba(210, 56, 31, .10);
-    --radius: 12px;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #151413; --panel: #1f1e1c; --ink: #f1efea; --muted: #a29e96; --line: #33312d;
-      --accent: #ff5a3c; --accent-ink: #1a0f0c; --ok: #6cc28f; --err: #ff8a80; --track: #2c2a27;
-      --wave: #4d4943; --sel: rgba(255, 90, 60, .14);
-      color-scheme: dark;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
-  }
-  main { max-width: 720px; margin: 0 auto; padding: 48px 16px 80px; }
-  h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0; }
-  h1 span { color: var(--accent); }
-  .sub { color: var(--muted); margin: 4px 0 28px; }
+  /* 이 화면만의 것. 크기·색은 키트 토큰만 쓴다. 이름은 ui- 로 시작하지 않는다(키트와 부딪히지 않게). */
+  .stack { display: flex; flex-direction: column; gap: var(--ui-gutter); }
+  .gap { display: flex; flex-direction: column; gap: var(--ui-space-16); }
+  .gap > :is(h2, p) { margin: 0; }
+  .back { align-self: flex-start; }
 
-  form { display: flex; gap: 8px; }
-  #url {
-    flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 14px 16px;
-    border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink);
-  }
-  #url:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  button {
-    font: inherit; cursor: pointer; border-radius: var(--radius); border: 1px solid var(--line);
-    background: var(--panel); color: var(--ink); padding: 8px 14px;
-  }
-  button:hover { border-color: var(--muted); }
-  button.primary {
-    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
-    font-weight: 600; padding: 14px 20px; white-space: nowrap;
-  }
-  button.primary:disabled { opacity: .5; cursor: default; }
-  .formerr { color: var(--err); min-height: 1.5em; margin: 6px 2px 0; font-size: 14px; }
+  /* 키트의 도움말·빈 상태 글자(t5)는 대비 4.5 아래라, 뜻을 담는 글에는 t4 를 쓴다 */
+  .ui-field:not(.ui-error) .ui-help, .ui-empty { color: var(--ui-t4); }
+  .ui-field .ui-help:empty { display: none; }
 
-  .folder { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; margin: 4px 2px 32px; flex-wrap: wrap; }
-  .folder code { color: var(--ink); background: var(--track); padding: 2px 8px; border-radius: 6px; word-break: break-all; }
-  .folder input { font: inherit; flex: 1; min-width: 200px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
-  .linkbtn { border: 0; background: none; color: var(--accent); padding: 2px 4px; }
+  .ui-banner .ui-txt { display: flex; flex-direction: column; }
+  .ui-d.folder-path { white-space: normal; }
+  .folder-path { font-family: var(--ui-font-mono, ui-monospace, monospace); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; }
 
-  #jobs { display: grid; gap: 12px; }
-  .empty { color: var(--muted); text-align: center; padding: 40px 0; border: 1px dashed var(--line); border-radius: var(--radius); }
-  .job { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-  .job .title { font-weight: 600; overflow-wrap: anywhere; }
-  .job .meta { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
-  .bar { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; margin: 12px 0 6px; }
-  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
-  .bar.indeterminate i { width: 30%; animation: slide 1.1s ease-in-out infinite; }
-  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
-  .status { font-size: 13px; color: var(--muted); }
-  .status.ok { color: var(--ok); }
-  .status.err { color: var(--err); }
-  audio { width: 100%; margin-top: 12px; }
-  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .actions button, .actions .btn { font-size: 13px; padding: 6px 12px; }
-  .btn {
-    display: inline-block; text-decoration: none; border-radius: var(--radius); border: 1px solid var(--accent);
-    background: var(--accent); color: var(--accent-ink); font-weight: 600;
-  }
+  .job-title, .cut-title { font-size: var(--ui-fs-body-l); font-weight: 700; overflow-wrap: anywhere; }
+  .job-meta { color: var(--ui-t4); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; margin-top: var(--ui-space-4); }
+  .job-status { display: flex; align-items: center; gap: var(--ui-space-8); flex-wrap: wrap; color: var(--ui-t4); font-size: var(--ui-fs-sub); }
+  .err-text { color: var(--ui-danger); font-size: var(--ui-fs-sub); overflow-wrap: anywhere; }
+  audio { width: 100%; display: block; }
 
-  h2 { font-size: 17px; margin: 40px 0 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
-  h2 small { font-size: 13px; font-weight: 400; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
-  .list { display: grid; gap: 6px; }
-  .row { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 8px 14px; }
-  .row .name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
-  .row.active { border-color: var(--accent); }
-  .row button { font-size: 13px; padding: 6px 12px; flex: none; }
-  .empty.small { padding: 18px 0; font-size: 14px; }
+  /* 진행률을 모를 때: 막대가 오간다. 동작 줄이기에서는 멈춘 반쯤 찬 막대 */
+  .ui-progress.indet > i { width: 30%; animation: ytm-slide calc(1.1s / max(var(--ui-motion, 1), .01)) ease-in-out infinite; }
+  @keyframes ytm-slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  @media (prefers-reduced-motion: reduce) { .ui-progress.indet > i { animation: none; width: 50%; } }
 
-  #editor { background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin-top: 12px; }
-  .ed-head { display: flex; gap: 8px; align-items: flex-start; }
-  .ed-head .title { flex: 1; font-weight: 600; overflow-wrap: anywhere; }
-  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
-  .wave { position: relative; height: 120px; background: var(--track); border-radius: 8px; overflow: hidden; }
+  .song-name { overflow-wrap: anywhere; }
+  /* 유튜브 제목은 길다 — 목록에서 한 줄로 자르지 않고 두 줄까지 */
+  .ui-row .ui-t.song-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .wave { position: relative; height: calc(var(--ui-space-32) * 4); background: var(--ui-fill); border-radius: var(--ui-r-12); overflow: hidden; }
   .wave canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-  .wave .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
-  .wave .msg[hidden] { display: none; }
-  .range { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 14px; }
-  .range label { display: flex; align-items: center; gap: 6px; }
-  .range input { font: inherit; width: 92px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
-  .range input.short { width: 64px; }
-  .range button { font-size: 13px; padding: 6px 10px; }
-  .range .len { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .range .len b { color: var(--ink); }
-  .ed-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
-  .ed-actions button.primary { padding: 10px 18px; }
-  .ed-actions button { padding: 10px 14px; }
-  .job.fresh { border-color: var(--ok); }
-  #cuts { display: grid; gap: 12px; }
-  .testmode { background: var(--ink); color: var(--bg); font-size: 13px; text-align: center; padding: 6px 12px; border-radius: 8px; margin-bottom: 16px; }
+  .wave-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ui-t4); font-size: var(--ui-fs-sub); padding: var(--ui-space-16); text-align: center; }
+  .wave-msg[hidden] { display: none; }
+  .times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ui-space-12); }
+  .times .ui-input { font-variant-numeric: tabular-nums; }
+  .times .ui-btn { width: 100%; }
+  .len { color: var(--ui-t4); font-size: var(--ui-fs-sub); font-variant-numeric: tabular-nums; }
+  .len b { color: var(--ui-t1); }
+  .msg { min-height: 1.4em; font-size: var(--ui-fs-sub); color: var(--ui-t4); overflow-wrap: anywhere; }
+  .msg.err { color: var(--ui-danger); }
 </style>
 </head>
-<body>
-<main>
-  <div class="testmode" id="testmode" hidden>시험 모드 · 소리가 모두 꺼져 있습니다</div>
-  <h1>yt<span>mp3</span></h1>
-  <p class="sub">유튜브 링크를 넣으면 mp3 로 뽑아 저장 폴더에 넣습니다. 받은 곡은 원하는 구간만 잘라 따로 저장할 수 있습니다.</p>
+<body class="ui-app">
+<header class="ui-gnb"><div class="ui-in">
+  <a class="ui-logo" href="#get"><span class="ui-logo-mark" data-ui-icon="spark"></span>ytmp3</a>
+  <nav data-ui-nav="gnb" aria-label="주 메뉴"></nav>
+  <div class="ui-right"><button type="button" class="ui-round-btn ui-s" data-ui-theme data-ui-icon="moon" aria-label="밝게·어둡게"></button></div>
+</div></header>
+<header class="ui-topbar"><div class="ui-in">
+  <span class="ui-brand">ytmp3</span><span class="ui-spacer"></span>
+  <button type="button" class="ui-icon-btn" data-ui-theme data-ui-icon="moon" aria-label="밝게·어둡게"></button>
+</div></header>
 
-  <form id="form" autocomplete="off" novalidate>
-    <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=…" aria-label="유튜브 링크" autofocus>
-    <button class="primary" id="go" type="submit">mp3 뽑기</button>
-  </form>
-  <div class="formerr" id="formerr" role="alert"></div>
+<main class="ui-wrap ui-main">
+  <section class="ui-card ui-banner" id="testmode" hidden>
+    <span class="ui-tile ui-s ui-warning" data-ui-icon="info"></span>
+    <div class="ui-txt"><span class="ui-t">시험 모드</span><span class="ui-d">소리가 모두 꺼져 있어요</span></div>
+  </section>
 
-  <div class="folder" id="folder">
-    저장 폴더 <code id="outText">…</code>
-    <button class="linkbtn" type="button" id="outEdit">바꾸기</button>
-  </div>
+  <!-- 받기 -->
+  <section class="stack" id="view-get" aria-labelledby="h-get">
+    <div class="ui-page-h"><h1 id="h-get">받기</h1><p>유튜브 링크를 넣으면 mp3 로 뽑아 받은 곡에 넣어요.</p></div>
+    <section class="ui-card ui-card-pad">
+      <form class="gap" id="form" autocomplete="off" novalidate>
+        <div class="ui-field" id="urlField">
+          <label for="url">유튜브 링크</label>
+          <input class="ui-input" id="url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" aria-describedby="formerr">
+          <p class="ui-help" id="formerr" role="alert"></p>
+        </div>
+        <button class="ui-btn ui-primary ui-l ui-block" id="go" type="submit">mp3 뽑기</button>
+      </form>
+    </section>
+    <section class="ui-card"><div class="ui-rows">
+      <div class="ui-row ui-static">
+        <span class="ui-tile ui-s ui-accent" data-ui-icon="folder"></span>
+        <div class="ui-txt"><span class="ui-t">저장 폴더</span><span class="ui-d folder-path" id="outText">…</span></div>
+        <button type="button" class="ui-btn ui-neutral ui-m" id="outEdit">바꾸기</button>
+      </div>
+    </div></section>
+    <div class="stack" id="jobs" aria-live="polite"></div>
+  </section>
 
-  <section id="jobs" aria-live="polite"></section>
-
-  <h2>받은 곡 <small>골라서 구간을 자릅니다</small></h2>
-  <section class="list" id="songs"></section>
-
-  <section id="editor" hidden aria-label="구간 자르기">
-    <div class="ed-head">
-      <div class="title" id="edName"></div>
-      <button class="linkbtn" type="button" id="edClose">닫기</button>
-    </div>
-    <p class="hint">파형을 끌어 구간을 고르고, 양 끝을 끌어 다듬습니다. 한 번 누르면 그 위치부터 재생합니다.</p>
-    <div class="wave"><canvas id="wave" aria-label="파형"></canvas><div class="msg" id="waveMsg">파형 읽는 중…</div></div>
-    <audio id="edAudio" controls preload="auto"></audio>
-    <div class="range">
-      <label>시작 <input id="edStart" inputmode="decimal" aria-label="시작 시간"></label>
-      <button type="button" id="setStart">지금 위치로</button>
-      <label>끝 <input id="edEnd" inputmode="decimal" aria-label="끝 시간"></label>
-      <button type="button" id="setEnd">지금 위치로</button>
-    </div>
-    <div class="range">
-      <span class="len">길이 <b id="edLen">–</b></span>
-      <label>페이드 인 <input class="short" id="fadeIn" type="number" min="0" step="0.1" value="0">초</label>
-      <label>페이드 아웃 <input class="short" id="fadeOut" type="number" min="0" step="0.1" value="0">초</label>
-    </div>
-    <div class="ed-actions">
-      <button type="button" id="preview">▶ 구간 듣기</button>
-      <button type="button" class="primary" id="doCut">잘라서 저장</button>
-      <span class="status" id="edMsg" role="status"></span>
+  <!-- 받은 곡 · 구간 자르기 -->
+  <section class="stack" id="view-songs" aria-labelledby="h-songs" hidden>
+    <div class="ui-page-h"><h1 id="h-songs">받은 곡</h1><p>곡을 골라 원하는 구간만 잘라요.</p></div>
+    <div class="ui-list-detail" id="songsLD">
+      <div class="ui-list-pane"><section class="ui-card"><div class="ui-rows" id="songs"></div></section></div>
+      <div class="ui-detail-pane">
+        <section class="ui-card" id="edEmpty"><div class="ui-empty"><svg data-ui-icon="edit"></svg>곡을 고르면 여기서 잘라요</div></section>
+        <section class="ui-card ui-card-pad gap" id="editor" aria-labelledby="edName" hidden>
+          <button type="button" class="ui-btn ui-text ui-m back" data-ui-back data-ui-icon="back">목록</button>
+          <h2 class="ui-h3 song-name" id="edName"></h2>
+          <p class="ui-muted" id="edHint">파형을 끌어 구간을 고르고, 양 끝을 끌어 다듬어요. 한 번 누르면 그 자리부터 재생해요.</p>
+          <div class="wave"><canvas id="wave" role="img" aria-label="파형과 고른 구간" aria-describedby="edHint"></canvas><div class="wave-msg" id="waveMsg">파형 읽는 중…</div></div>
+          <audio id="edAudio" controls preload="auto"></audio>
+          <div class="times">
+            <div class="gap">
+              <div class="ui-field"><label for="edStart">시작</label><input class="ui-input" id="edStart" inputmode="decimal" autocomplete="off"></div>
+              <button type="button" class="ui-btn ui-neutral ui-m" id="setStart">지금 위치로</button>
+            </div>
+            <div class="gap">
+              <div class="ui-field"><label for="edEnd">끝</label><input class="ui-input" id="edEnd" inputmode="decimal" autocomplete="off"></div>
+              <button type="button" class="ui-btn ui-neutral ui-m" id="setEnd">지금 위치로</button>
+            </div>
+            <div class="ui-field"><label for="fadeIn">페이드 인 (초)</label><input class="ui-input" id="fadeIn" type="number" min="0" step="0.1" value="0"></div>
+            <div class="ui-field"><label for="fadeOut">페이드 아웃 (초)</label><input class="ui-input" id="fadeOut" type="number" min="0" step="0.1" value="0"></div>
+          </div>
+          <p class="len">길이 <b id="edLen">–</b></p>
+          <div class="ui-ctas">
+            <button type="button" class="ui-btn ui-weak ui-xl" id="preview">구간 듣기</button>
+            <button type="button" class="ui-btn ui-primary ui-xl" id="doCut">잘라서 저장</button>
+          </div>
+          <p class="msg" id="edMsg" role="status"></p>
+        </section>
+      </div>
     </div>
   </section>
 
-  <h2>잘라낸 곡 <small id="cutsDir"></small></h2>
-  <section id="cuts" aria-live="polite"></section>
+  <!-- 잘라낸 곡 -->
+  <section class="stack" id="view-cuts" aria-labelledby="h-cuts" hidden>
+    <div class="ui-page-h"><h1 id="h-cuts">잘라낸 곡</h1><p class="folder-path" id="cutsDir"></p></div>
+    <div class="stack" id="cuts" aria-live="polite"></div>
+  </section>
 </main>
+
+<nav class="ui-tabbar" aria-label="하단 메뉴"><div class="ui-in" data-ui-nav="tabbar"></div></nav>
 
 <script>
 const $ = (s) => document.querySelector(s);
+const enc = encodeURIComponent;
 let outDir = null;           // 화면에서 고른 저장 폴더 (없으면 서버 기본값)
 let defaultOut = "";
 let canReveal = true;
-let songs = [];
 let jobs = [];
 let timer = null;
+let lastCut = null;          // 방금 잘라낸 곡 이름 (잘라낸 곡 화면에서 표시)
 const rendered = new Map(); // id → 카드 요소 (재생 중인 audio 를 다시 그리지 않으려고)
 
 function store(key, value) { try { value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch {} }
 function load(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children.filter((c) => c != null));
+  return node;
+}
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || `요청 실패 (${res.status})`);
+  if (!res.ok) throw new Error(body.error || `요청이 실패했어요 (${res.status})`);
   return body;
 }
 
-function showFolder() {
-  $("#outText").textContent = outDir || defaultOut;
+/* ---------- 화면 셋: 받기 · 받은 곡 · 잘라낸 곡 ---------- */
+const VIEWS = ["get", "songs", "cuts"];
+UI.nav({
+  items: [
+    { id: "get", label: "받기", icon: "plus", href: "#get" },
+    { id: "songs", label: "받은 곡", icon: "edit", href: "#songs" },
+    { id: "cuts", label: "잘라낸 곡", icon: "folder", href: "#cuts" },
+  ],
+  current: "get",
+});
+function route() {
+  const id = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "get";
+  for (const v of VIEWS) $(`#view-${v}`).hidden = v !== id;
+  UI.nav.set(id);
+  if (id !== "songs") stopPreview();
+  if (id === "songs") { loadSongs(); requestAnimationFrame(draw); }
+  if (id === "cuts") loadCuts();
 }
+window.addEventListener("hashchange", route);
+
+/* ---------- 받기 ---------- */
+function showFolder() { $("#outText").textContent = outDir || defaultOut; }
 
 $("#outEdit").addEventListener("click", () => {
-  const box = $("#folder");
-  box.innerHTML = "";
-  const input = Object.assign(document.createElement("input"), { value: outDir || defaultOut, ariaLabel: "저장 폴더" });
-  const save = Object.assign(document.createElement("button"), { type: "button", textContent: "저장" });
-  const reset = Object.assign(document.createElement("button"), { type: "button", className: "linkbtn", textContent: "기본값" });
+  const input = el("input", { className: "ui-input", id: "outInput", value: outDir || defaultOut, autocomplete: "off" });
+  const save = el("button", { type: "button", className: "ui-btn ui-primary ui-xl", textContent: "저장" });
+  const reset = el("button", { type: "button", className: "ui-btn ui-neutral ui-xl", textContent: "기본값" });
   const done = (value) => {
     outDir = value && value !== defaultOut ? value : null;
     store("ytmp3.outDir", outDir);
-    location.reload();
+    showFolder();
+    UI.sheet.close();
+    UI.toast(outDir ? "저장 폴더를 바꿨어요" : "기본 저장 폴더로 돌렸어요");
   };
   save.onclick = () => done(input.value.trim());
   reset.onclick = () => done(null);
-  input.onkeydown = (e) => { if (e.key === "Enter") save.click(); if (e.key === "Escape") location.reload(); };
-  box.append("저장 폴더 ", input, save, reset);
+  input.onkeydown = (e) => { if (e.key === "Enter") save.click(); };
+  const label = el("label", { htmlFor: "outInput", textContent: "폴더 (절대 경로)" });
+  UI.sheet.open(el("div", {},
+    el("h3", { className: "ui-h3", textContent: "저장 폴더" }),
+    el("div", { className: "ui-field" }, label, input),
+    el("div", { className: "ui-ctas" }, reset, save)));
   input.focus(); input.select();
 });
+
+function formError(msg) {
+  $("#formerr").textContent = msg;
+  $("#urlField").classList.toggle("ui-error", !!msg);
+}
 
 $("#form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const url = $("#url").value.trim();
-  $("#formerr").textContent = "";
-  if (!url) { $("#formerr").textContent = "유튜브 링크를 넣어 주세요."; return; }
+  formError("");
+  if (!url) { formError("유튜브 링크를 넣어 주세요."); $("#url").focus(); return; }
   $("#go").disabled = true;
   try {
     const job = await api("api/jobs", { method: "POST", body: JSON.stringify({ url, out_dir: outDir }) });
@@ -212,7 +226,7 @@ $("#form").addEventListener("submit", async (e) => {
     render();
     poll();
   } catch (err) {
-    $("#formerr").textContent = err.message;
+    formError(err.message);
   } finally {
     $("#go").disabled = false;
     $("#url").focus();
@@ -226,91 +240,65 @@ function fmtDuration(sec) {
 }
 
 function card(job) {
-  let el = rendered.get(job.id);
+  const old = rendered.get(job.id);
   const key = `${job.status}|${job.message}|${job.percent}|${job.title}`;
-  if (el && el.dataset.key === key) return el;
+  if (old && old.dataset.key === key) return old;
   // 끝난 카드는 다시 그리지 않는다 — 재생 중인 소리가 끊긴다.
-  if (el && el.dataset.status === "done" && job.status === "done") return el;
-  const fresh = document.createElement("article");
-  fresh.className = "job";
-  fresh.dataset.key = key;
-  fresh.dataset.status = job.status;
-  fresh.dataset.id = job.id;
-
-  const title = document.createElement("div");
-  title.className = "title";
-  title.textContent = job.title || job.url;
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.textContent = job.status === "done" ? job.path : job.url;
-  fresh.append(title, meta);
+  if (old && old.dataset.status === "done" && job.status === "done") return old;
+  const fresh = el("article", { className: "ui-card ui-card-pad gap" });
+  Object.assign(fresh.dataset, { key, status: job.status, id: job.id });
+  fresh.append(el("div", {},
+    el("div", { className: "job-title", textContent: job.title || job.url }),
+    el("div", { className: "job-meta", textContent: job.status === "done" ? job.path : job.url })));
 
   if (job.status === "queued" || job.status === "running") {
-    const bar = document.createElement("div");
-    bar.className = "bar" + (job.percent == null || job.message !== "받는 중" ? " indeterminate" : "");
-    const fill = document.createElement("i");
-    if (!bar.classList.contains("indeterminate")) fill.style.width = `${job.percent}%`;
-    bar.append(fill);
-    const st = document.createElement("div");
-    st.className = "status";
-    st.textContent = job.message === "받는 중" && job.percent != null ? `받는 중 ${job.percent}%` : job.message;
-    fresh.append(bar, st);
+    const known = job.percent != null && job.message === "받는 중";
+    const fill = el("i");
+    if (known) fill.style.width = `${job.percent}%`;
+    const bar = el("div", { className: "ui-progress" + (known ? "" : " indet"), role: "progressbar" }, fill);
+    bar.setAttribute("aria-label", "진행");
+    if (known) bar.setAttribute("aria-valuenow", job.percent);
+    fresh.append(bar, el("div", { className: "job-status", textContent: known ? `받는 중 ${job.percent}%` : job.message }));
   } else if (job.status === "error") {
-    const st = document.createElement("div");
-    st.className = "status err";
-    st.textContent = job.error;
-    fresh.append(st);
+    fresh.append(el("div", { className: "job-status" }, el("span", { className: "ui-badge ui-danger", textContent: "못 받았어요" })),
+      el("p", { className: "err-text", textContent: job.error }));
   } else {
-    const st = document.createElement("div");
-    st.className = "status ok";
-    st.textContent = (job.already_existed ? "이미 있던 파일" : "저장 완료") + (job.duration ? ` · ${fmtDuration(job.duration)}` : "");
-    const audio = document.createElement("audio");
-    audio.controls = true;
-    audio.preload = "metadata";
-    audio.src = `api/jobs/${job.id}/audio`;
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const reveal = Object.assign(document.createElement("button"), { type: "button", textContent: "Finder 에서 보기" });
-    reveal.hidden = !canReveal;
-    reveal.onclick = () => api(`api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => alertInline(fresh, e.message));
-    const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "경로 복사" });
-    copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(job.path); copy.textContent = "복사됨"; }
-      catch { copy.textContent = "복사 실패"; }
-      setTimeout(() => (copy.textContent = "경로 복사"), 1500);
-    };
-    const save = Object.assign(document.createElement("a"), {
-      href: `api/jobs/${job.id}/audio?download=1`, textContent: "다운로드", className: "btn",
-    });
+    const badge = el("span", { className: "ui-badge ui-success", textContent: job.already_existed ? "이미 있던 파일" : "저장했어요" });
+    const status = el("div", { className: "job-status" }, badge, job.duration ? el("span", { textContent: fmtDuration(job.duration) }) : null);
+    const player = el("audio", { controls: true, preload: "metadata", src: `api/jobs/${job.id}/audio` });
+    const save = el("a", { href: `api/jobs/${job.id}/audio?download=1`, textContent: "다운로드", className: "ui-btn ui-weak ui-m" });
     save.setAttribute("download", job.file);
-    actions.append(save, reveal, copy);
+    const reveal = el("button", { type: "button", className: "ui-btn ui-neutral ui-m", textContent: "Finder 에서 보기", hidden: !canReveal });
+    reveal.onclick = () => api(`api/jobs/${job.id}/reveal`, { method: "POST" }).catch((e) => UI.toast(e.message, { type: "err" }));
+    const copy = el("button", { type: "button", className: "ui-btn ui-neutral ui-m", textContent: "경로 복사" });
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(job.path); UI.toast("경로를 복사했어요"); }
+      catch { UI.toast("복사하지 못했어요", { type: "err" }); }
+    };
+    const row = el("div", { className: "ui-btn-row" }, save, reveal, copy);
     if (job.out_dir === defaultOut) {
-      const cut = Object.assign(document.createElement("button"), { type: "button", textContent: "구간 자르기" });
-      cut.onclick = () => openEditor(job.file);
-      actions.append(cut);
+      const cut = el("button", { type: "button", className: "ui-btn ui-neutral ui-m", textContent: "구간 자르기" });
+      cut.onclick = () => openSong(job.file);
+      row.append(cut);
     }
-    fresh.append(st, audio, actions);
+    fresh.append(status, player, row);
   }
-  if (el) el.replaceWith(fresh);
+  if (old) old.replaceWith(fresh);
   rendered.set(job.id, fresh);
   return fresh;
-}
-
-function alertInline(el, msg) {
-  const st = el.querySelector(".status");
-  if (st) { st.className = "status err"; st.textContent = msg; }
 }
 
 function render() {
   const box = $("#jobs");
   if (!jobs.length) {
-    box.innerHTML = '<div class="empty">유튜브 링크를 붙여넣으면 여기에 받는 과정이 나옵니다.</div>';
+    box.replaceChildren(el("section", { className: "ui-card" },
+      el("div", { className: "ui-empty", textContent: "링크를 넣으면 여기에 받는 과정이 나와요." })));
     return;
   }
-  box.querySelector(".empty")?.remove();
+  [...box.children].forEach((c) => { if (!c.dataset.id) c.remove(); });
   jobs.forEach((job, i) => {
-    const el = card(job);
-    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+    const node = card(job);
+    if (box.children[i] !== node) box.insertBefore(node, box.children[i] || null);
   });
 }
 
@@ -333,11 +321,11 @@ function poll() {
   timer = setTimeout(tick, 300);
 }
 
-/* ---------- 받은 곡 · 구간 자르기 · 잘라낸 곡 ---------- */
-const enc = encodeURIComponent;
+/* ---------- 받은 곡 · 구간 자르기 ---------- */
 const ed = { name: null, duration: 0, peaks: [], start: 0, end: 0, previewing: false, drag: null, raf: 0 };
 const audio = $("#edAudio");
 const canvas = $("#wave");
+const ld = $("#songsLD");
 
 function fmt(t) {
   t = Math.round(t * 100) / 100;
@@ -351,66 +339,69 @@ function parseTime(text) {
   return (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + parseFloat(m[3]);
 }
 const r2 = (t) => Math.round(t * 100) / 100;
-
-function empty(text) { return Object.assign(document.createElement("div"), { className: "empty small", textContent: text }); }
+function fmtSize(bytes) { return `${(bytes / 1048576).toFixed(1)}MB`; }
+function fmtDate(sec) { return new Date(sec * 1000).toLocaleDateString("ko-KR", { month: "long", day: "numeric" }); }
 
 async function loadSongs() {
+  let songs;
   try { songs = await api("api/songs"); } catch { return; }
   const box = $("#songs");
-  box.replaceChildren();
-  if (!songs.length) { box.append(empty("받은 곡이 없습니다. 위에서 먼저 받아 주세요.")); return; }
-  for (const s of songs) {
-    const row = Object.assign(document.createElement("div"), { className: "row" + (s.name === ed.name ? " active" : "") });
-    row.append(Object.assign(document.createElement("span"), { className: "name", textContent: s.name }));
-    const b = Object.assign(document.createElement("button"), { type: "button", textContent: "자르기" });
-    b.onclick = () => openEditor(s.name);
-    row.append(b);
-    box.append(row);
+  if (!songs.length) {
+    box.replaceChildren(el("div", { className: "ui-empty", textContent: "받은 곡이 없어요. 받기에서 먼저 받아 주세요." }));
+    return;
   }
+  box.replaceChildren(...songs.map((s) => {
+    const tile = el("span", { className: "ui-tile ui-s ui-accent" });
+    tile.innerHTML = UI.icon("spark");
+    const row = el("div", { className: "ui-row", role: "button", tabIndex: 0 }, tile,
+      el("div", { className: "ui-txt" },
+        el("span", { className: "ui-t song-name", textContent: s.name.replace(/\.[^.]+$/, "") }),
+        el("span", { className: "ui-d", textContent: `${fmtSize(s.size)} · ${fmtDate(s.mtime)}` })));
+    row.insertAdjacentHTML("beforeend", UI.icon("chev", "ui-chev"));
+    row.dataset.uiDetail = s.name;
+    if (s.name === ed.name) row.setAttribute("aria-current", "true");
+    return row;
+  }));
 }
 
-async function loadCuts(fresh) {
-  let cuts = [];
-  try { cuts = await api("api/cuts"); } catch { return; }
-  const box = $("#cuts");
-  box.replaceChildren();
-  if (!cuts.length) { box.append(empty("아직 잘라낸 곡이 없습니다.")); return; }
-  for (const c of cuts) {
-    const card = Object.assign(document.createElement("article"), { className: "job" + (c.name === fresh ? " fresh" : "") });
-    card.append(Object.assign(document.createElement("div"), { className: "title", textContent: c.name }));
-    const a = Object.assign(document.createElement("audio"), { controls: true, preload: c.name === fresh ? "metadata" : "none" });
-    a.src = `api/cuts/${enc(c.name)}/audio`;
-    const dl = Object.assign(document.createElement("a"), { href: `api/cuts/${enc(c.name)}/audio?download=1`, textContent: "다운로드", className: "btn" });
-    dl.setAttribute("download", c.name);
-    const actions = Object.assign(document.createElement("div"), { className: "actions" });
-    actions.append(dl);
-    card.append(a, actions);
-    box.append(card);
-  }
+// 키트의 목록-상세: 행을 누르면 detail, 뒤로(또는 폰의 뒤로 가기)면 list
+ld.addEventListener("ui:view", (e) => {
+  if (e.detail.view === "detail" && e.detail.value) openEditor(e.detail.value);
+  if (e.detail.view === "list") stopPreview();
+});
+
+function openSong(name) {
+  if (location.hash !== "#songs") location.hash = "#songs";
+  UI.setView("detail", ld, name);
 }
 
 async function openEditor(name) {
+  if (ed.name === name) return;
   stopPreview();
   Object.assign(ed, { name, duration: 0, peaks: [], start: 0, end: 0 });
+  $("#edEmpty").hidden = true;
   $("#editor").hidden = false;
   $("#edName").textContent = name;
-  $("#edMsg").textContent = ""; $("#edMsg").className = "status";
+  setMsg("");
   $("#waveMsg").textContent = "파형 읽는 중…"; $("#waveMsg").hidden = false;
   audio.src = `api/songs/${enc(name)}/audio`;
-  syncInputs(); loadSongs();
-  $("#editor").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  syncInputs(); draw();
+  ld.querySelectorAll("[data-ui-detail]").forEach((r) => {
+    if (r.dataset.uiDetail === name) r.setAttribute("aria-current", "true"); else r.removeAttribute("aria-current");
+  });
   try {
     const w = await api(`api/songs/${enc(name)}/peaks?n=1200`);
     if (ed.name !== name) return;
     Object.assign(ed, { duration: w.duration, peaks: w.peaks, start: 0, end: r2(w.duration) });
     $("#waveMsg").hidden = true;
   } catch (e) {
+    if (ed.name === name) ed.name = null;  // 다시 누르면 다시 읽는다
     $("#waveMsg").textContent = e.message;
   }
   syncInputs(); draw();
 }
 
-$("#edClose").onclick = () => { stopPreview(); audio.removeAttribute("src"); audio.load(); ed.name = null; $("#editor").hidden = true; loadSongs(); };
+function setMsg(text, kind = "") { const m = $("#edMsg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); }
 
 function syncInputs() {
   $("#edStart").value = ed.duration ? fmt(ed.start) : "";
@@ -419,11 +410,12 @@ function syncInputs() {
   $("#doCut").disabled = $("#preview").disabled = !ed.duration;
 }
 
-function color(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function color(name) { return getComputedStyle(canvas).getPropertyValue(name).trim(); }
 
 function draw() {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   }
@@ -433,10 +425,11 @@ function draw() {
   if (!ed.duration) return;
   const X = (t) => (t / ed.duration) * w;
   const xs = X(ed.start), xe = X(ed.end);
-  g.fillStyle = color("--sel");
+  const on = color("--ui-accent"), off = color("--ui-t6");
+  g.fillStyle = on; g.globalAlpha = 0.12;
   g.fillRect(xs, 0, xe - xs, h);
+  g.globalAlpha = 1;
   const n = ed.peaks.length, mid = h / 2, bar = 2, gap = 1;
-  const on = color("--accent"), off = color("--wave");
   for (let x = 0; x < w; x += bar + gap) {
     const i0 = Math.floor((x / w) * n), i1 = Math.max(i0 + 1, Math.floor(((x + bar + gap) / w) * n));
     let p = 0;
@@ -452,10 +445,12 @@ function draw() {
     g.fillRect(Math.round(x) - 5, h - 8, 10, 8);
   }
   if (audio.getAttribute("src") && !isNaN(audio.currentTime)) {
-    g.fillStyle = color("--ink");
+    g.fillStyle = color("--ui-t1");
     g.fillRect(Math.round(X(audio.currentTime)), 0, 1, h);
   }
 }
+new ResizeObserver(() => draw()).observe(canvas);
+document.addEventListener("ui:theme", () => requestAnimationFrame(draw));
 
 function tick() {
   if (ed.previewing && audio.currentTime >= ed.end) { audio.pause(); audio.currentTime = ed.end; }
@@ -465,10 +460,9 @@ function tick() {
 audio.addEventListener("play", () => { cancelAnimationFrame(ed.raf); ed.raf = requestAnimationFrame(tick); });
 audio.addEventListener("pause", () => {
   if (!audio.paused) return;  // 앞서 멈춘 것의 늦게 온 알림 — 그사이 구간 듣기가 다시 시작됐다
-  ed.previewing = false; $("#preview").textContent = "▶ 구간 듣기"; draw();
+  ed.previewing = false; $("#preview").textContent = "구간 듣기"; draw();
 });
 audio.addEventListener("seeked", draw);
-window.addEventListener("resize", draw);
 
 function stopPreview() { ed.previewing = false; if (!audio.paused) audio.pause(); }
 
@@ -476,8 +470,8 @@ $("#preview").onclick = () => {
   if (ed.previewing) return stopPreview();
   audio.currentTime = ed.start;
   ed.previewing = true;
-  $("#preview").textContent = "■ 멈춤";
-  audio.play().catch(() => { ed.previewing = false; });
+  $("#preview").textContent = "멈추기";
+  audio.play().catch(() => { ed.previewing = false; $("#preview").textContent = "구간 듣기"; });
 };
 
 function timeAt(e) {
@@ -490,7 +484,7 @@ canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
   const r = canvas.getBoundingClientRect();
   const px = e.clientX - r.left, X = (t) => (t / ed.duration) * r.width;
-  const near = e.pointerType === "touch" ? 22 : 10;
+  const near = e.pointerType === "touch" ? 24 : 12;
   const ds = Math.abs(px - X(ed.start)), de = Math.abs(px - X(ed.end));
   if (ds <= near && ds <= de) ed.drag = { mode: "start" };
   else if (de <= near) ed.drag = { mode: "end" };
@@ -525,15 +519,13 @@ canvas.addEventListener("pointercancel", endDrag);
 function setFromInput(which) {
   const input = which === "start" ? $("#edStart") : $("#edEnd");
   const t = parseTime(input.value);
-  const msg = $("#edMsg");
   if (t == null || t > ed.duration) {
-    msg.className = "status err";
-    msg.textContent = t == null ? `시간 형식이 아닙니다: ${input.value} (예: 1:23.5 또는 83.5)` : `곡 길이(${fmt(ed.duration)})를 넘습니다`;
+    setMsg(t == null ? `시간 꼴이 아니에요: ${input.value} (예: 1:23.5 또는 83.5)` : `곡 길이(${fmt(ed.duration)})보다 길어요`, "err");
     return syncInputs();
   }
   if (which === "start") { ed.start = r2(t); if (ed.end - ed.start < MIN_LEN) ed.end = Math.min(ed.duration, r2(ed.start + MIN_LEN)); }
   else { ed.end = r2(t); if (ed.end - ed.start < MIN_LEN) ed.start = Math.max(0, r2(ed.end - MIN_LEN)); }
-  msg.textContent = "";
+  setMsg("");
   syncInputs(); draw();
 }
 for (const which of ["start", "end"]) {
@@ -555,29 +547,59 @@ $("#setEnd").onclick = () => {
 };
 
 $("#doCut").onclick = async () => {
-  const btn = $("#doCut"), msg = $("#edMsg");
+  const btn = $("#doCut");
   btn.disabled = true;
-  msg.className = "status"; msg.textContent = "자르는 중…";
+  btn.classList.add("ui-loading");
+  setMsg("자르는 중…");
   try {
     const c = await api("api/cuts", { method: "POST", body: JSON.stringify({
       song: ed.name, start: ed.start, end: ed.end,
       fade_in: parseFloat($("#fadeIn").value) || 0, fade_out: parseFloat($("#fadeOut").value) || 0,
     }) });
-    msg.className = "status ok";
-    msg.textContent = `저장했습니다 · ${fmt(c.duration)} → 아래 잘라낸 곡`;
-    await loadCuts(c.file);
+    lastCut = c.file;
+    setMsg(`${fmt(c.duration)} 를 잘라 저장했어요. 잘라낸 곡에서 들을 수 있어요.`);
+    UI.toast("잘라서 저장했어요");
   } catch (e) {
-    msg.className = "status err"; msg.textContent = e.message;
+    setMsg(e.message, "err");
   } finally {
+    btn.classList.remove("ui-loading");
     btn.disabled = !ed.duration;
   }
 };
 
+/* ---------- 잘라낸 곡 ---------- */
+async function loadCuts() {
+  let cuts;
+  try { cuts = await api("api/cuts"); } catch { return; }
+  const box = $("#cuts");
+  if (!cuts.length) {
+    box.replaceChildren(el("section", { className: "ui-card" },
+      el("div", { className: "ui-empty", textContent: "아직 잘라낸 곡이 없어요. 받은 곡에서 잘라 보세요." })));
+    return;
+  }
+  box.replaceChildren(...cuts.map((c) => {
+    const fresh = c.name === lastCut;
+    const dl = el("a", { href: `api/cuts/${enc(c.name)}/audio?download=1`, textContent: "다운로드", className: "ui-btn ui-weak ui-m" });
+    dl.setAttribute("download", c.name);
+    return el("article", { className: "ui-card ui-card-pad gap" },
+      el("div", { className: "job-status" },
+        fresh ? el("span", { className: "ui-badge ui-success", textContent: "방금" }) : null,
+        el("span", { textContent: `${fmtSize(c.size)} · ${fmtDate(c.mtime)}` })),
+      el("div", { className: "cut-title", textContent: c.name }),
+      el("audio", { controls: true, preload: fresh ? "metadata" : "none", src: `api/cuts/${enc(c.name)}/audio` }),
+      el("div", { className: "ui-btn-row" }, dl));
+  }));
+}
+
+/* ---------- 시작 ---------- */
 (async () => {
   outDir = load("ytmp3.outDir");
   try {
     const cfg = await api("api/config");
     defaultOut = cfg.out_dir;
+    $("#cutsDir").textContent = cfg.cuts_dir;
+    canReveal = cfg.can_reveal;
+    if (!cfg.can_change_out) { outDir = null; $("#outEdit").hidden = true; }
     if (cfg.test_mode) {
       // 시험 모드: 어떤 재생이든 시작되는 순간 음소거 (play 는 버블링하지 않아 캡처로 받는다)
       $("#testmode").hidden = false;
@@ -586,12 +608,9 @@ $("#doCut").onclick = async () => {
       document.addEventListener("play", (e) => mute(e.target), true);
       document.addEventListener("volumechange", (e) => { if (!e.target.muted) mute(e.target); }, true);
     }
-    $("#cutsDir").textContent = cfg.cuts_dir;
-    canReveal = cfg.can_reveal;
-    if (!cfg.can_change_out) { outDir = null; $("#outEdit").hidden = true; }
   } catch {}
   showFolder();
-  loadCuts();
+  route();
   try { if (await refresh()) poll(); } catch { render(); loadSongs(); }
 })();
 </script>

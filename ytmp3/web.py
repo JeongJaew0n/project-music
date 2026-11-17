@@ -61,6 +61,7 @@ STATIC = Path(__file__).parent / "static"
 PERCENT = re.compile(r"^\s*(\d+)%$")
 AUDIO_TYPES = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac", ".m4a": "audio/mp4",
                ".aac": "audio/aac", ".opus": "audio/ogg", ".ogg": "audio/ogg", ".webm": "audio/webm"}
+STATIC_TYPES = {".woff2": "font/woff2", ".js": "text/javascript", ".css": "text/css", ".ts": "text/plain"}
 CUT_LOCK = threading.Lock()  # 같은 구간을 동시에 자르면 같은 이름을 고른다
 
 
@@ -195,8 +196,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_file(job.path)
         if parts[:2] in (["api", "songs"], ["api", "cuts"]):
             return self._library_get(parts)
-        if len(parts) == 2 and parts[0] == "static":
-            return self._static(parts[1])
+        if len(parts) >= 2 and parts[0] == "static":
+            return self._static("/".join(parts[1:]))
         self._error(HTTPStatus.NOT_FOUND, "없는 주소입니다")
 
     def do_POST(self) -> None:
@@ -370,12 +371,14 @@ class Handler(BaseHTTPRequestHandler):
         return job
 
     def _static(self, name: str) -> None:
+        """static/ 아래 파일 (키트 사본 vendor/ui-kit/ 의 글꼴 포함). static/ 밖·숨김 파일은 없는 것으로."""
         path = (STATIC / name).resolve()
-        if path.parent != STATIC.resolve() or not path.is_file():
+        hidden = any(part.startswith(".") for part in Path(name).parts)
+        if hidden or not path.is_relative_to(STATIC.resolve()) or not path.is_file():
             return self._error(HTTPStatus.NOT_FOUND, "없는 파일입니다")
         data = path.read_bytes()
         self.send_response(HTTPStatus.OK)
-        ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        ctype = STATIC_TYPES.get(path.suffix) or mimetypes.guess_type(name)[0] or "application/octet-stream"
         self.send_header("Content-Type", f"{ctype}; charset=utf-8" if ctype.startswith("text/") else ctype)
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Content-Length", str(len(data)))
