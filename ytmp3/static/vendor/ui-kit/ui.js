@@ -1,4 +1,4 @@
-/* ui-kit 0.3.2 */
+/* ui-kit 0.3.4 */
 /* ui-kit — 색 계산, 동작, 아이콘. 전역 UI(브라우저)와 UIColor(브라우저·Node)를 만든다.
    <head> 에서 defer 없이 읽으면 저장된 테마·시안·내 색이 첫 화면부터 적용된다(깜빡임 없음).
 
@@ -123,7 +123,7 @@
 
       const lt = { surface: "#ffffff", bar: "#ffffff", ...greys("light", H) };
       lt.tile = lt.fill;
-      lt.t4 = fit(GREY.light.t4[0], GREY.light.t4[1] * tint, H, [lt.bg, lt.surface], 4.5, -1);
+      lt.t4 = fit(GREY.light.t4[0], GREY.light.t4[1] * tint, H, [lt.bg, lt.surface, lt.fill], 4.5, -1);
       lt.accent = spec.accent;
       lt["accent-press"] = from(L - 0.08, C, H);
       lt["accent-weak"] = from(0.96, Math.min(0.022, C * 0.15), H);
@@ -137,7 +137,7 @@
       const accD = spec.accentDark || from(clamp(L + 0.06, 0.66, 0.8), C, H);
       const [Ld, Cd, Hd] = oklch(accD);
       const dk = greys("dark", Hd);
-      dk.t4 = fit(GREY.dark.t4[0], GREY.dark.t4[1] * tint, Hd, [dk.bg, dk.surface], 4.5, 1);
+      dk.t4 = fit(GREY.dark.t4[0], GREY.dark.t4[1] * tint, Hd, [dk.bg, dk.surface, dk.fill], 4.5, 1);
       dk.accent = accD;
       dk["accent-press"] = from(Ld - 0.07, Cd, Hd);
       dk["accent-weak"] = from(0.285, Math.min(0.048, Cd * 0.25), Hd);
@@ -151,10 +151,12 @@
       Object.assign(lt, spec.light); Object.assign(dk, spec.dark);
       for (const [t, own, dir] of [[lt, spec.light || {}, -1], [dk, spec.dark || {}, 1]]) {
         t["on-danger"] = onColor(t.danger, 21, 0.2);
+        // 꺼짐 색: 꺼진 스위치 길·체크 동그라미·라디오 테두리. 회색 t5 를 카드·바탕·채움 위 3:1 까지 (누를 수 있는 것의 모양, WCAG 1.4.11)
+        if (!("control" in own)) t.control = (([L, C, H]) => fit(L, C, H, [t.surface, t.bg, t.fill], 3, dir))(oklch(t.t5));
         // 마우스 올림: 기본색과 누름색 사이(누름보다 약하게). 손으로 고른 누름색을 따른다. 약한 색은 글자 대비 4.5 를 지키려고 기본색 쪽으로
         // [기본, 누름, 비율, 위에 놓일 글자] — 글자가 있으면 대비 4.5 를 지킬 때까지 기본색 쪽으로 당긴다
         const hover = { "accent-hover": [t.accent, t["accent-press"]], "accent-weak-hover": [t["accent-weak"], t["accent-weak-press"], 0.5, t["accent-weak-t"]], "fill-hover": [t.fill, t["fill-press"]],
-          "surface-hover": [t.surface, t.fill], "danger-hover": [t.danger, t["danger-press"]], "danger-weak-hover": [t["danger-weak"], t.danger, 0.1, t["danger-t"]] };
+          "surface-hover": [t.surface, t.fill], "control-hover": [t.control, t.t4], "danger-hover": [t.danger, t["danger-press"]], "danger-weak-hover": [t["danger-weak"], t.danger, 0.1, t["danger-t"]] };
         for (const [k, [a, b, w = 0.5, txt]] of Object.entries(hover)) {
           if (k in own) continue;
           let v = mix(a, b, w);
@@ -172,8 +174,8 @@
     }
 
     // 지켜야 할 대비. 실패한 항목 목록을 돌려준다(시험·생성기가 씀)
-    const RULES = [["on-accent", "accent", 3], ["t1", "surface", 7], ["t4", "surface", 4.5], ["t4", "bg", 4.5], ["accent-weak-t", "accent-weak", 4.5], ["danger-t", "danger-weak", 4.5], ["on-danger", "danger", 3],
-      ["focus", "surface", 3], ["focus", "bg", 3], ["focus", "fill", 3], ["on-accent", "accent-hover", 3], ["accent-weak-t", "accent-weak-hover", 4.5], ["danger-t", "danger-weak-hover", 4.5],
+    const RULES = [["on-accent", "accent", 3], ["t1", "surface", 7], ["t4", "surface", 4.5], ["t4", "bg", 4.5], ["t4", "fill", 4.5], ["accent-weak-t", "accent-weak", 4.5], ["danger-t", "danger-weak", 4.5], ["on-danger", "danger", 3],
+      ["focus", "surface", 3], ["focus", "bg", 3], ["focus", "fill", 3], ["control", "surface", 3], ["control", "bg", 3], ["control", "fill", 3], ["on-accent", "accent-hover", 3], ["accent-weak-t", "accent-weak-hover", 4.5], ["danger-t", "danger-weak-hover", 4.5],
       ...["danger", "warning", "success"].flatMap((k) => [`${k}-weak`, "surface", "bg"].map((bg) => [`${k}-t`, bg, 4.5]))];   // 뜻 색 글자: 배지·타일과 쓰는 쪽 글자
     const check = (t) => RULES.map(([a, b, min]) => ({ a, b, min, ratio: +contrast(t[a], t[b]).toFixed(2) })).filter((r) => r.ratio < r.min);
 
@@ -193,7 +195,7 @@
       dark: { "accent-press": "#2f74e0", "accent-weak": "#1c2a42", "accent-weak-press": "#23365a", "accent-weak-t": "#79b0ff", "bar": "#171719", "bg": "#101012", "fill": "#2c2d30", "fill-press": "#3a3b3f", "gnb": "rgba(16,16,18,.86)", "line": "#2a2b2e", "line-strong": "#3a3b3f", "surface": "#1a1a1c", "surface-2": "#202022", "t1": "#ececee", "t5": "#7c8088", "tile": "#26272a" },
     },
     mint: {
-      light: { "accent-press": "#00845a", "accent-weak": "#e3f7ef", "accent-weak-press": "#c3eedc", "accent-weak-t": "#007a52", "bg": "#f1f5f4", "fill": "#eef3f1", "fill-press": "#dfe7e4", "gnb": "rgba(255,255,255,.86)", "line": "#e1e8e5", "line-strong": "#cbd6d2", "surface-2": "#f7faf9", "t1": "#14201c", "t2": "#2c3a35", "t3": "#45544f", "t4": "#63736d", "t5": "#84938d", "t6": "#aab7b2", "tile": "#eef3f1" },
+      light: { "accent-press": "#00845a", "accent-weak": "#e3f7ef", "accent-weak-press": "#c3eedc", "accent-weak-t": "#007a52", "bg": "#f1f5f4", "fill": "#eef3f1", "fill-press": "#dfe7e4", "gnb": "rgba(255,255,255,.86)", "line": "#e1e8e5", "line-strong": "#cbd6d2", "surface-2": "#f7faf9", "t1": "#14201c", "t2": "#2c3a35", "t3": "#45544f", "t4": "#5c6c66", "t5": "#84938d", "t6": "#aab7b2", "tile": "#eef3f1" },
       dark: { "accent-press": "#18a877", "accent-weak": "#13302a", "accent-weak-press": "#1a4237", "accent-weak-t": "#5fdcad", "bar": "#131918", "bg": "#0e1312", "fill": "#26302e", "fill-press": "#313c3a", "gnb": "rgba(14,19,18,.86)", "line": "#222b29", "line-strong": "#33403d", "on-accent": "#04170f", "surface": "#161c1b", "surface-2": "#1b2221", "t1": "#e8f0ed", "t2": "#ced9d5", "t3": "#aebbb6", "t4": "#8f9d98", "t5": "#75847e", "t6": "#56635f", "tile": "#1f2725" },
     },
     sunset: {

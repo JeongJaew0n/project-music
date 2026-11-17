@@ -1,4 +1,4 @@
-/* ui-kit 0.3.2 */
+/* ui-kit 0.3.4 */
 /* ui-kit tokens — tools/gen.mjs 가 kit/ui.js 의 시안으로 만든 파일. 직접 고치지 않는다.
    토큰은 모두 @layer ui-tokens 안에 있다: 쓰는 쪽의 레이어 밖 :root { --ui-… } 가 어떤 모드·시안에서도 이긴다. */
 @font-face { font-family: "Kit Sans"; src: url("fonts/KitSans-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
@@ -152,10 +152,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(255,255,255,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #828c98;
   --ui-accent-hover: #2673e8;
   --ui-accent-weak-hover: #ddecfd;
   --ui-fill-hover: #ebeef0;
   --ui-surface-hover: #f8f9fa;
+  --ui-control-hover: #727d89;
   --ui-danger-hover: #e13441;
   --ui-danger-weak-hover: #fee9e8;
   --ui-focus: #3182f6;
@@ -206,10 +208,12 @@
     --ui-toast-t: #ffffff;
     --ui-gnb: rgba(16,16,18,.86);
     --ui-on-danger: #ffffff;
+    --ui-control: #7c8088;
     --ui-accent-hover: #367fef;
     --ui-accent-weak-hover: #1f304e;
     --ui-fill-hover: #333437;
     --ui-surface-hover: #232326;
+    --ui-control-hover: #898d94;
     --ui-danger-hover: #eb4b55;
     --ui-danger-weak-hover: #4b2327;
     --ui-focus: #3d8bff;
@@ -260,10 +264,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(16,16,18,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #7c8088;
   --ui-accent-hover: #367fef;
   --ui-accent-weak-hover: #1f304e;
   --ui-fill-hover: #333437;
   --ui-surface-hover: #232326;
+  --ui-control-hover: #898d94;
   --ui-danger-hover: #eb4b55;
   --ui-danger-weak-hover: #4b2327;
   --ui-focus: #3d8bff;
@@ -282,7 +288,7 @@
   --ui-t1: #14201c;
   --ui-t2: #2c3a35;
   --ui-t3: #45544f;
-  --ui-t4: #63736d;
+  --ui-t4: #5c6c66;
   --ui-t5: #84938d;
   --ui-t6: #aab7b2;
   --ui-tile: #eef3f1;
@@ -316,10 +322,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(255,255,255,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #7e8d87;
   --ui-accent-hover: #009162;
   --ui-accent-weak-hover: #d3f3e5;
   --ui-fill-hover: #e6edea;
   --ui-surface-hover: #f6f9f8;
+  --ui-control-hover: #6d7c76;
   --ui-danger-hover: #e13441;
   --ui-danger-weak-hover: #fee9e8;
   --ui-focus: #009e6a;
@@ -370,10 +378,12 @@
     --ui-toast-t: #ffffff;
     --ui-gnb: rgba(14,19,18,.86);
     --ui-on-danger: #ffffff;
+    --ui-control: #75847e;
     --ui-accent-hover: #1bb680;
     --ui-accent-weak-hover: #163930;
     --ui-fill-hover: #2b3634;
     --ui-surface-hover: #1e2624;
+    --ui-control-hover: #82908b;
     --ui-danger-hover: #eb4b55;
     --ui-danger-weak-hover: #4b2327;
     --ui-focus: #1fc48a;
@@ -424,10 +434,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(14,19,18,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #75847e;
   --ui-accent-hover: #1bb680;
   --ui-accent-weak-hover: #163930;
   --ui-fill-hover: #2b3634;
   --ui-surface-hover: #1e2624;
+  --ui-control-hover: #82908b;
   --ui-danger-hover: #eb4b55;
   --ui-danger-weak-hover: #4b2327;
   --ui-focus: #1fc48a;
@@ -480,10 +492,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(255,255,255,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #94877e;
   --ui-accent-hover: #e5621b;
   --ui-accent-weak-hover: #fde7d9;
   --ui-fill-hover: #ede8e4;
   --ui-surface-hover: #f9f7f5;
+  --ui-control-hover: #85776e;
   --ui-danger-hover: #d01e53;
   --ui-danger-weak-hover: #fddae1;
   --ui-focus: #e7600f;
@@ -534,10 +548,12 @@
     --ui-toast-t: #ffffff;
     --ui-gnb: rgba(20,17,15,.86);
     --ui-on-danger: #ffffff;
+    --ui-control: #83776f;
     --ui-accent-hover: #f88143;
     --ui-accent-weak-hover: #42291b;
     --ui-fill-hover: #362e2a;
     --ui-surface-hover: #26211d;
+    --ui-control-hover: #90847c;
     --ui-danger-hover: #e8426f;
     --ui-danger-weak-hover: #4a1f2e;
     --ui-focus: #ff8a4c;
@@ -588,10 +604,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(20,17,15,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #83776f;
   --ui-accent-hover: #f88143;
   --ui-accent-weak-hover: #42291b;
   --ui-fill-hover: #362e2a;
   --ui-surface-hover: #26211d;
+  --ui-control-hover: #90847c;
   --ui-danger-hover: #e8426f;
   --ui-danger-weak-hover: #4a1f2e;
   --ui-focus: #ff8a4c;
@@ -644,10 +662,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(255,255,255,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #898989;
   --ui-accent-hover: #030303;
   --ui-accent-weak-hover: #ffedac;
   --ui-fill-hover: #e8e8e8;
   --ui-surface-hover: #f7f7f7;
+  --ui-control-hover: #797979;
   --ui-danger-hover: #e13441;
   --ui-danger-weak-hover: #fee9e8;
   --ui-focus: #161616;
@@ -698,10 +718,12 @@
     --ui-toast-t: #ffffff;
     --ui-gnb: rgba(13,13,13,.86);
     --ui-on-danger: #ffffff;
+    --ui-control: #7a7a7a;
     --ui-accent-hover: #e7e7e7;
     --ui-accent-weak-hover: #423915;
     --ui-fill-hover: #303030;
     --ui-surface-hover: #212121;
+    --ui-control-hover: #878787;
     --ui-danger-hover: #eb4b55;
     --ui-danger-weak-hover: #4b2327;
     --ui-focus: #f5f5f5;
@@ -752,10 +774,12 @@
   --ui-toast-t: #ffffff;
   --ui-gnb: rgba(13,13,13,.86);
   --ui-on-danger: #ffffff;
+  --ui-control: #7a7a7a;
   --ui-accent-hover: #e7e7e7;
   --ui-accent-weak-hover: #423915;
   --ui-fill-hover: #303030;
   --ui-surface-hover: #212121;
+  --ui-control-hover: #878787;
   --ui-danger-hover: #eb4b55;
   --ui-danger-weak-hover: #4b2327;
   --ui-focus: #f5f5f5;
